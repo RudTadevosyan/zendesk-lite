@@ -1,0 +1,6 @@
+@ZendeskLite.API_HostAddress = http://localhost:5248
+
+GET {{ZendeskLite.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

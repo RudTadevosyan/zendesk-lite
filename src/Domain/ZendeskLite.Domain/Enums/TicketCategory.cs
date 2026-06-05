@@ -1,0 +1,16 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace ZendeskLite.Domain.Enums
+{
+    public enum TicketCategory
+    {
+        General,
+        TechnicalSupport,
+        Billing,
+        AccessManagement
+    }
+}

@@ -364,4 +364,5 @@ FodyWeavers.xsd
 
 .env
 .idea
+.idea/
 /aspire/.env

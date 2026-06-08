@@ -4,7 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 using ZendeskLite.Domain.Enums;
 
-namespace ZendeskLite.Infrastructure.Persistence.Seed;
+namespace ZendeskLite.Infrastructure.Persistence;
 
 public static class DatabaseSeeder
 {
@@ -33,7 +33,7 @@ public static class DatabaseSeeder
                 Log.Information("Database migrations applied successfully.");
                 break;
             }
-            catch (Npgsql.NpgsqlException ex) when (ex.InnerException is System.IO.EndOfStreamException || ex.Message.Contains("does not exist"))
+            catch (Npgsql.NpgsqlException ex) when (ex.InnerException is EndOfStreamException || ex.Message.Contains("does not exist"))
             {
                 Log.Warning("PostgreSQL is still establishing the 'zendeskdb' catalog. Waiting {Delay} seconds...", delaySeconds);
                 await Task.Delay(TimeSpan.FromSeconds(delaySeconds));

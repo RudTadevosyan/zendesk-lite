@@ -1,5 +1,13 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
+DotNetEnv.Env.Load();
+
+var jwtKey = Environment.GetEnvironmentVariable("JWT_SECRET_KEY")
+             ?? throw new InvalidOperationException("JWT_SECRET_KEY is not configured in .env or environment.");
+
+var jwtIssuer = Environment.GetEnvironmentVariable("JWT_ISSUER") ?? "ZendeskLite";
+var jwtAudience = Environment.GetEnvironmentVariable("JWT_AUDIENCE") ?? "ZendeskLiteUsers";
+
 //  Configure Redis for JWT Refresh Token Management
 var redis = builder.AddRedis("redis")
     .WithRedisInsight();
@@ -22,10 +30,13 @@ var webApi = builder.AddProject<Projects.ZendeskLite_API>("webapi")
     .WaitFor(redis)
     .WithReference(rabbitMq)
     .WaitFor(rabbitMq)
-    .WithExternalHttpEndpoints();
+    .WithExternalHttpEndpoints()
+    .WithEnvironment("Jwt__Key", jwtKey)
+    .WithEnvironment("Jwt__Issuer", jwtIssuer)
+    .WithEnvironment("Jwt__Audience", jwtAudience);
 
-// Future Phase Reference: 
-// When you add the background worker in Phase 4, you'll reference them like this:
+
+// Future Phase Reference: For the workers service 
 // builder.AddProject<Projects.ZendeskLite_Worker>("worker")
 //     .WithReference(database)
 //     .WithReference(rabbitMq);

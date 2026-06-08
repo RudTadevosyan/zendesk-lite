@@ -1,13 +1,22 @@
 ﻿using Microsoft.AspNetCore.Http;
 using System.Security.Claims;
-using ZendeskLite.Application.Identity;
+using ZendeskLite.Application.Common.Interfaces;
 
 namespace ZendeskLite.Infrastructure.Identity
 {
-    public sealed class CurrentUser(IHttpContextAccessor httpContextAccessor) : ICurrentUser
+    public sealed class CurrentUser : ICurrentUser
     {
-        public string? UserId => httpContextAccessor.HttpContext?.User.FindFirstValue(ClaimTypes.NameIdentifier);
-        public string? Email => httpContextAccessor.HttpContext?.User.FindFirstValue(ClaimTypes.Email);
-        public bool IsAuthenticated => httpContextAccessor.HttpContext?.User.Identity?.IsAuthenticated ?? false;
+        private readonly ClaimsPrincipal? _user;
+
+        public CurrentUser(IHttpContextAccessor httpContextAccessor)
+        {
+            _user = httpContextAccessor.HttpContext?.User;
+        }
+
+        public string? UserId => _user?.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        public string? Email => _user?.FindFirstValue(ClaimTypes.Email);
+
+        public bool IsAuthenticated => _user?.Identity?.IsAuthenticated ?? false;
     }
 }

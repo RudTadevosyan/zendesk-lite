@@ -9,6 +9,8 @@
   <ItemGroup>
     <PackageReference Include="Aspire.RabbitMQ.Client" Version="13.4.0" />
     <PackageReference Include="Aspire.StackExchange.Redis" Version="13.4.0" />
+    <PackageReference Include="MediatR.Extensions.Microsoft.DependencyInjection" Version="11.0.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.27" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.27">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -19,12 +21,13 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Controllers\" />
+    <ProjectReference Include="..\..\..\aspire\ServiceDefaults\ZendeskLite.ServiceDefaults\ZendeskLite.ServiceDefaults.csproj" />
+    <ProjectReference Include="..\..\Application\ZendeskLite.Application\ZendeskLite.Application.csproj" />
+    <ProjectReference Include="..\..\Infrastructure\ZendeskLite.Infrastructure\ZendeskLite.Infrastructure.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\aspire\ServiceDefaults\ZendeskLite.ServiceDefaults\ZendeskLite.ServiceDefaults.csproj" />
-    <ProjectReference Include="..\..\Infrastructure\ZendeskLite.Infrastructure\ZendeskLite.Infrastructure.csproj" />
+    <Folder Include="Controllers\" />
   </ItemGroup>
 
 </Project>

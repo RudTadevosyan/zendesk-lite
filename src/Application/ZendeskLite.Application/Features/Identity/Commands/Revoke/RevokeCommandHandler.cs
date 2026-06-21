@@ -18,7 +18,7 @@ namespace ZendeskLite.Application.Features.Identity.Commands.Revoke
         public RevokeCommandHandler(ITokenService tokenService, ILogger<RevokeCommandHandler> logger)
         {
             _tokenService = tokenService;
-            logger = _logger;
+            _logger = logger;
         }
 
         public async Task<Result> Handle(RevokeCommand request, CancellationToken cancellationToken)

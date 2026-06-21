@@ -1,7 +1,7 @@
 ﻿using ZendeskLite.Domain.Common;
 using ZendeskLite.Domain.Entities;
 
-namespace ZendeskLite.Application.Common.Interfaces;
+namespace ZendeskLite.Application.Abstractions.Common.Interfaces;
 
 public record TokenResponse(string AccessToken, string RefreshToken, DateTime ExpiresAt);
 

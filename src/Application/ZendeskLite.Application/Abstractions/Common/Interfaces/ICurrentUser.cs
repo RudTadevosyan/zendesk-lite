@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ZendeskLite.Application.Common.Interfaces
+namespace ZendeskLite.Application.Abstractions.Common.Interfaces
 {
     public interface ICurrentUser
     {

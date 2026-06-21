@@ -2,7 +2,7 @@
 using MediatR;
 using ZendeskLite.Domain.Common;
 
-namespace ZendeskLite.Application.Common.Behaviors;
+namespace ZendeskLite.Application.Abstractions.Common.Behaviors;
 
 public class ValidationBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, TResponse>
     where TRequest : IRequest<TResponse>

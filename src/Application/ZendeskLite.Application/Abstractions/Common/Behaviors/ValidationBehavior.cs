@@ -1,6 +1,7 @@
 ﻿using FluentValidation;
 using MediatR;
 using ZendeskLite.Domain.Common;
+using System.Reflection;
 
 namespace ZendeskLite.Application.Abstractions.Common.Behaviors;
 
@@ -37,16 +38,25 @@ public class ValidationBehavior<TRequest, TResponse> : IPipelineBehavior<TReques
     {
         var error = Error.Validation(failures.First().PropertyName, failures.First().ErrorMessage);
 
-        // Check if the TResult is a generic Result<T>, if so we need to call the generic Failure method
+        // Check if the TResult is a generic Result<T>
         if (typeof(TResult).IsGenericType && typeof(TResult).GetGenericTypeDefinition() == typeof(Result<>))
         {
             var valueType = typeof(TResult).GetGenericArguments()[0];
-            var method = typeof(Result).GetMethod(nameof(Result.Failure), new[] { typeof(Error) })!
-                                       .MakeGenericMethod(valueType);
 
-            return (TResult)method.Invoke(null, new object[] { error })!;
+            // Explicitly find the generic Failure<T> method by filtering for Generic Methods
+            var method = typeof(Result)
+                .GetMethods(BindingFlags.Public | BindingFlags.Static)
+                .FirstOrDefault(m => m.Name == nameof(Result.Failure)
+                                     && m.IsGenericMethod
+                                     && m.GetGenericArguments().Length == 1)!;
+
+            return (TResult)method.MakeGenericMethod(valueType).Invoke(null, new object[] { error })!;
         }
 
-        return (TResult)Result.Failure(error);
+        // Explicitly find the non-generic Failure method by providing parameter types
+        var nonGenericMethod = typeof(Result)
+            .GetMethod(nameof(Result.Failure), new[] { typeof(Error) })!;
+
+        return (TResult)nonGenericMethod.Invoke(null, new object[] { error })!;
     }
 }

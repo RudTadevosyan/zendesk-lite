@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
 using System.Security.Claims;
-using ZendeskLite.Application.Common.Interfaces;
+using ZendeskLite.Application.Abstractions.Common.Interfaces;
 
 namespace ZendeskLite.Infrastructure.Identity
 {

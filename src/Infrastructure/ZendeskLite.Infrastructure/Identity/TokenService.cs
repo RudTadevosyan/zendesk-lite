@@ -6,9 +6,9 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
-using ZendeskLite.Application.Common.Interfaces;
 using ZendeskLite.Domain.Common;
 using Microsoft.Extensions.Logging;
+using ZendeskLite.Application.Abstractions.Common.Interfaces;
 
 namespace ZendeskLite.Infrastructure.Services;
 

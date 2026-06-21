@@ -1,7 +1,7 @@
 ﻿using FluentValidation;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
-using ZendeskLite.Application.Common.Behaviors;
+using ZendeskLite.Application.Abstractions.Common.Behaviors;
 
 namespace ZendeskLite.Application
 {

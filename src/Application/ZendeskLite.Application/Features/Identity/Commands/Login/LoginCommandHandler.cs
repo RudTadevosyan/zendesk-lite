@@ -1,7 +1,7 @@
 ﻿using MediatR;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
-using ZendeskLite.Application.Common.Interfaces;
+using ZendeskLite.Application.Abstractions.Common.Interfaces;
 using ZendeskLite.Domain.Common;
 using ZendeskLite.Domain.Entities;
 

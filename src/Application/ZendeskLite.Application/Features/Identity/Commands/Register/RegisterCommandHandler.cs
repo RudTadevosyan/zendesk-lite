@@ -16,6 +16,16 @@ namespace ZendeskLite.Application.Features.Identity.Commands.Register
         private readonly ITokenService _tokenService;
         private readonly ILogger<RegisterCommandHandler> _logger;
         private readonly UserManager<AppUser> _userManager;
+
+        public RegisterCommandHandler(
+            ITokenService tokenService,
+            ILogger<RegisterCommandHandler> logger,
+            UserManager<AppUser> userManager)
+        {
+            _tokenService = tokenService;
+            _logger = logger;
+            _userManager = userManager;
+        }
         public async Task<Result<TokenResponse>> Handle(RegisterCommand request, CancellationToken ct)
         {
             var user = new AppUser

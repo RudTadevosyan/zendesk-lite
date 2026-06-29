@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using ZendeskLite.Application.Abstractions.Common.Interfaces;
+using ZendeskLite.Application.Abstractions.Persistence;
 using ZendeskLite.Infrastructure.Identity;
 using ZendeskLite.Infrastructure.Persistence;
 using ZendeskLite.Infrastructure.Services;
@@ -36,8 +37,11 @@ namespace ZendeskLite.Infrastructure
             });
 
             services.AddHttpContextAccessor();
+
+
             services.AddScoped<ICurrentUser, CurrentUser>();
             services.AddScoped<ITokenService, TokenService>();
+            services.AddScoped<ITicketRepository, TicketRepository>();
 
             return services;
         }

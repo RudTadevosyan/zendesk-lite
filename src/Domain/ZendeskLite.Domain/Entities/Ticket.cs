@@ -18,6 +18,7 @@ namespace ZendeskLite.Domain.Entities
         public TicketPriority Priority { get; set; } = TicketPriority.Medium;
         public TicketCategory Category { get; set; } = TicketCategory.General;
 
+        public string? Comments { get; set; }
         public string CustomerId { get; set; } = string.Empty;
         public string? AgentId { get; set; }
     }

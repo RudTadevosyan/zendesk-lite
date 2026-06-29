@@ -9,7 +9,9 @@ namespace ZendeskLite.Domain.Entities
 {
     public class TicketAuditLog : BaseEntity
     {
-        public Guid TicketId { get; set; } 
+        public Guid TicketId { get; set; }
+
+        // Last action performed on the tickets
         public string Action { get; set; } = string.Empty;
         public string ChangedByUserId { get; set; } = string.Empty;
         public string? Notes { get; set; }

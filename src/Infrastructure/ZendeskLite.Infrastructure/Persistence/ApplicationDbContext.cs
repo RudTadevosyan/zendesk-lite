@@ -1,11 +1,12 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using ZendeskLite.Application.Abstractions.Persistence;
 using ZendeskLite.Domain.Entities;
 
 namespace ZendeskLite.Infrastructure.Persistence;
 
-public class ApplicationDbContext : IdentityDbContext<AppUser>
+public class ApplicationDbContext : IdentityDbContext<AppUser>, IApplicationDbContext
 {
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
         : base(options)

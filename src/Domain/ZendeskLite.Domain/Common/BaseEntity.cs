@@ -11,11 +11,11 @@ namespace ZendeskLite.Domain.Common
         public Guid Id { get; private init; } = Guid.NewGuid();
         public DateTimeOffset CreatedAt { get; private set; } = DateTimeOffset.UtcNow;
         public DateTimeOffset LastModifiedAt { get; private set; } = DateTimeOffset.UtcNow;
+        public bool IsDeleted { get; private set; } = false;
         public void UpdateLastModified()
         {
             LastModifiedAt = DateTimeOffset.UtcNow;
         }
-        public bool IsDeleted { get; private set; } = false;
 
         public void SoftDelete()
         {

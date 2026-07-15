@@ -19,7 +19,8 @@ namespace ZendeskLite.Application.Abstractions.Persistence
 
         // Queries
         Task<Ticket?> GetByIdAsync(Guid id, CancellationToken ct);
-        Task<PagedResult<Ticket>> GetFilteredAsync(TicketQueryParameters parameters, CancellationToken ct);
+        Task<PagedResult<Ticket>> GetUnassignedTicketsAsync(int page, int pageSize, CancellationToken ct);
+        Task<PagedResult<Ticket>> GetFilteredTicketsAsync(TicketQueryParameters parameters, CancellationToken ct);
     }
 
     public record TicketQueryParameters(string? UserId, TicketStatus? Status, TicketPriority? Priority,

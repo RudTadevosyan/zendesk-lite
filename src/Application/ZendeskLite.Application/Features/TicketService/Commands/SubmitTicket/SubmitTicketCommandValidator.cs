@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ZendeskLite.Application.Features.TicketService.Commands
+namespace ZendeskLite.Application.Features.TicketService.Commands.SubmitTicket
 {
     public class SubmitTicketCommandValidator : AbstractValidator<SubmitTicketCommand>
     {

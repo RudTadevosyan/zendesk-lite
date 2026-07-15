@@ -42,7 +42,8 @@ namespace ZendeskLite.Infrastructure
             services.AddScoped<ICurrentUser, CurrentUser>();
             services.AddScoped<ITokenService, TokenService>();
             services.AddScoped<ITicketRepository, TicketRepository>();
-
+            services.AddScoped<ITicketAuditRepository, TicketAuditRepository>();
+            services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<ApplicationDbContext>());
             return services;
         }
     }

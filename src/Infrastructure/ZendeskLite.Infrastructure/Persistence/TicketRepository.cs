@@ -38,7 +38,21 @@ public class TicketRepository : ITicketRepository
             .FirstOrDefaultAsync(t => t.Id == id && !t.IsDeleted, ct);
     }
 
-    public async Task<PagedResult<Ticket>> GetFilteredAsync(TicketQueryParameters p, CancellationToken ct)
+    public async Task<PagedResult<Ticket>> GetUnassignedTicketsAsync(int page, int pageSize, CancellationToken ct)
+    {
+        var query = _context.Tickets.Where(t => !t.IsDeleted && t.AgentId == null);
+
+        int totalCount = await query.CountAsync(ct);
+        var tickets = await query
+            .OrderByDescending(t => t.CreatedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(ct);
+
+        return new PagedResult<Ticket>(tickets, totalCount, page, pageSize);
+    }
+
+    public async Task<PagedResult<Ticket>> GetFilteredTicketsAsync(TicketQueryParameters p, CancellationToken ct)
     {
         IQueryable<Ticket> query = _context.Tickets.Where(t => !t.IsDeleted);
 
@@ -60,5 +74,12 @@ public class TicketRepository : ITicketRepository
             .ToListAsync(ct);
 
         return new PagedResult<Ticket>(tickets, totalCount, p.Page, p.PageSize);
+    }
+    public async Task<List<TicketAuditLog>> GetLogsByTicketIdAsync(Guid ticketId, CancellationToken ct)
+    {
+        return await _context.TicketAuditLogs 
+            .Where(log => log.TicketId == ticketId)
+            .OrderByDescending(log => log.CreatedAt)
+            .ToListAsync(ct);
     }
 }

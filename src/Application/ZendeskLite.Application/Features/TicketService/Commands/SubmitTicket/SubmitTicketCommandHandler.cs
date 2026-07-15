@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 using ZendeskLite.Application.Abstractions.Persistence;
 using ZendeskLite.Domain.Common;
 
-namespace ZendeskLite.Application.Features.TicketService.Commands
+namespace ZendeskLite.Application.Features.TicketService.Commands.SubmitTicket
 {
     public class SubmitTicketCommandHandler : IRequestHandler<SubmitTicketCommand, Result<Guid>>
     {

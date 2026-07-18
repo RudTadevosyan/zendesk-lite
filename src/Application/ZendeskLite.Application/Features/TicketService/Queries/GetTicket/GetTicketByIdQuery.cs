@@ -9,5 +9,5 @@ using ZendeskLite.Domain.Common;
 
 namespace ZendeskLite.Application.Features.TicketService.Queries.GetTicket
 {
-    public record GetTicketByIdQuery(Guid Id, string CustomerId) : IRequest<Result<BaseTicketDto>>;
+    public record GetTicketByIdQuery(Guid Id) : IRequest<Result<BaseTicketDto>>;
 }

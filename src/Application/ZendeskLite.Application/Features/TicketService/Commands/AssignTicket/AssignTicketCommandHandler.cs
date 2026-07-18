@@ -1,5 +1,6 @@
 ﻿using MediatR;
 using Microsoft.Extensions.Logging;
+using ZendeskLite.Application.Abstractions.Common.Interfaces;
 using ZendeskLite.Application.Abstractions.Persistence;
 using ZendeskLite.Application.Features.TicketService.Commands.AssignTicket;
 using ZendeskLite.Domain.Common;
@@ -11,17 +12,20 @@ public class AssignTicketCommandHandler : IRequestHandler<AssignTicketCommand, R
     private readonly ITicketAuditRepository _auditRepository;
     private readonly IApplicationDbContext _context;
     private readonly ILogger<AssignTicketCommandHandler> _logger;
+    private readonly ICurrentUser _currentUser; 
 
     public AssignTicketCommandHandler(
         ITicketRepository ticketRepository,
         ITicketAuditRepository auditRepository,
         IApplicationDbContext context,
-        ILogger<AssignTicketCommandHandler> logger)
+        ILogger<AssignTicketCommandHandler> logger,
+        ICurrentUser currentUser)
     {
         _ticketRepository = ticketRepository;
         _auditRepository = auditRepository;
         _context = context;
         _logger = logger;
+        _currentUser = currentUser;
     }
 
     public async Task<Result> Handle(AssignTicketCommand request, CancellationToken ct)
@@ -29,10 +33,9 @@ public class AssignTicketCommandHandler : IRequestHandler<AssignTicketCommand, R
         var ticket = await _ticketRepository.GetByIdAsync(request.TicketId, ct);
         if (ticket == null) return Result.Failure(Error.NotFound("404", "Ticket not found"));
 
-        // Business Rule: Agents can only assign to themselves
-        if (!request.IsAdmin && request.TargetAgentId != request.RequestingUserId)
+        if (!_currentUser.IsAdmin && request.TargetAgentId != _currentUser.UserId)
         {
-            _logger.LogWarning("Agent {UserId} attempted to assign ticket to {TargetAgentId}", request.RequestingUserId, request.TargetAgentId);
+            _logger.LogWarning("Agent {UserId} attempted to assign ticket to {TargetAgentId}", _currentUser.UserId, request.TargetAgentId);
             return Result.Failure(Error.Validation("403", "Agents can only assign tickets to themselves."));
         }
 
@@ -47,14 +50,14 @@ public class AssignTicketCommandHandler : IRequestHandler<AssignTicketCommand, R
             {
                 TicketId = ticket.Id,
                 Action = "Ticket Assigned",
-                ChangedByUserId = request.RequestingUserId,
+                ChangedByUserId = _currentUser.UserId!,
                 Notes = $"Ticket assigned to Agent {request.TargetAgentId}"
             }, ct);
 
             await _context.SaveChangesAsync(ct);
             await transaction.CommitAsync(ct);
 
-            _logger.LogInformation("Ticket {TicketId} assigned to {AgentId} by {User}", ticket.Id, request.TargetAgentId, request.RequestingUserId);
+            _logger.LogInformation("Ticket {TicketId} assigned to {AgentId} by {User}", ticket.Id, request.TargetAgentId, _currentUser.UserId);
             return Result.Success();
         }
         catch (Exception ex)

@@ -1,40 +1,46 @@
 ﻿using MediatR;
 using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using ZendeskLite.Application.Abstractions.Common.Interfaces;
 using ZendeskLite.Application.Abstractions.Persistence;
+using ZendeskLite.Application.Features.TicketService.Commands.SubmitTicket;
 using ZendeskLite.Domain.Common;
+using ZendeskLite.Domain.Entities;
 
-namespace ZendeskLite.Application.Features.TicketService.Commands.SubmitTicket
+public class SubmitTicketCommandHandler : IRequestHandler<SubmitTicketCommand, Result<Guid>>
 {
-    public class SubmitTicketCommandHandler : IRequestHandler<SubmitTicketCommand, Result<Guid>>
+    private readonly ITicketRepository _ticketRepository;
+    private readonly ICurrentUser _currentUser;
+    private readonly ILogger<SubmitTicketCommandHandler> _logger;
+
+    public SubmitTicketCommandHandler(
+        ITicketRepository ticketRepository,
+        ILogger<SubmitTicketCommandHandler> logger,
+        ICurrentUser currentUser) 
     {
-        private readonly ILogger<SubmitTicketCommandHandler> _logger;
-        private readonly ITicketRepository _ticketRepository;
+        _ticketRepository = ticketRepository;
+        _logger = logger;
+        _currentUser = currentUser;
+    }
 
-        public SubmitTicketCommandHandler(ITicketRepository ticketRepository, ILogger<SubmitTicketCommandHandler> logger)
+    public async Task<Result<Guid>> Handle(SubmitTicketCommand request, CancellationToken ct)
+    {
+        if (!_currentUser.IsAuthenticated)
         {
-            _ticketRepository = ticketRepository;
-            _logger = logger;
+            return Result.Failure<Guid>(Error.Failure("Auth.Unauthorized", "User is not authenticated."));
         }
 
-        public async Task<Result<Guid>> Handle(SubmitTicketCommand request, CancellationToken cancellationToken)
+        _logger.LogInformation("Submitting ticket for customer: {CustomerId}", _currentUser.UserId);
+
+        var ticket = new Ticket
         {
-            _logger.LogInformation("Submitting ticket for customer: {CustomerId}", request.CustomerId);
-            var ticket = new Domain.Entities.Ticket
-            {
-                Title = request.Title,
-                RawDescription = request.Description,
-                CustomerId = request.CustomerId,
-            };
+            Title = request.Title,
+            RawDescription = request.Description,
+            CustomerId = _currentUser.UserId!, 
+        };
 
-            await _ticketRepository.AddAsync(ticket, cancellationToken);
+        await _ticketRepository.AddAsync(ticket, ct);
 
-            _logger.LogInformation("Ticket submitted successfully with ID: {TicketId}", ticket.Id);
-            return Result.Success(ticket.Id);
-        }
+        _logger.LogInformation("Ticket submitted successfully with ID: {TicketId}", ticket.Id);
+        return Result.Success(ticket.Id);
     }
 }

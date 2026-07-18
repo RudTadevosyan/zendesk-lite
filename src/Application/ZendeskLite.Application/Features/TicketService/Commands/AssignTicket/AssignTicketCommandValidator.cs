@@ -7,8 +7,6 @@ public class AssignTicketCommandValidator : AbstractValidator<AssignTicketComman
     public AssignTicketCommandValidator()
     {
         RuleFor(x => x.TicketId).NotEmpty().WithMessage("Ticket ID is required.");
-        RuleFor(x => x.TargetAgentId)
-            .NotEmpty().WithMessage("An agent must be selected for assignment.");
-        RuleFor(x => x.RequestingUserId).NotEmpty();
+        RuleFor(x => x.TargetAgentId).NotEmpty().WithMessage("An agent must be selected for assignment.");
     }
 }

@@ -17,6 +17,9 @@ namespace ZendeskLite.Infrastructure.Identity
 
         public string? Email => _user?.FindFirstValue(ClaimTypes.Email);
 
+        public bool IsAdmin => _user?.IsInRole("Admin") ?? false;
+        public bool IsAgent => _user?.IsInRole("Agent") ?? false;
+        public bool IsAdminOrAgent => _user?.IsInRole("Admin") == true || _user?.IsInRole("Agent") == true;
         public bool IsAuthenticated => _user?.Identity?.IsAuthenticated ?? false;
     }
 }

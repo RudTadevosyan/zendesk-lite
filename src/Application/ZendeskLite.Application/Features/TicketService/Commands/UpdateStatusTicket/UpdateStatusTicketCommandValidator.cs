@@ -8,7 +8,6 @@ public class UpdateStatusTicketCommandValidator : AbstractValidator<UpdateTicket
     {
         RuleFor(x => x.TicketId).NotEmpty();
         RuleFor(x => x.NewStatus).IsInEnum();
-        RuleFor(x => x.AgentId).NotEmpty();
         RuleFor(x => x.Notes)
             .NotEmpty().WithMessage("Please provide a reason for the status change.")
             .MaximumLength(1000);

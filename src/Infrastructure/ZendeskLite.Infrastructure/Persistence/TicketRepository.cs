@@ -34,6 +34,11 @@ public class TicketRepository : ITicketRepository
 
     public async Task<Ticket?> GetByIdAsync(Guid id, CancellationToken ct)
     {
+        return await _context.Tickets.FirstOrDefaultAsync(t => t.Id == id && !t.IsDeleted, ct);
+    }
+
+    public async Task<Ticket?> GetByIdReadOnlyAsync(Guid id, CancellationToken ct)
+    {
         return await _context.Tickets.AsNoTracking()
             .FirstOrDefaultAsync(t => t.Id == id && !t.IsDeleted, ct);
     }

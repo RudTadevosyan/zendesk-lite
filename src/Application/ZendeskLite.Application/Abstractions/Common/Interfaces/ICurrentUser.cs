@@ -10,6 +10,9 @@ namespace ZendeskLite.Application.Abstractions.Common.Interfaces
     {
         string? UserId { get; }
         string? Email { get; }
+        bool IsAdmin { get; }
+        bool IsAgent { get; }
+        bool IsAdminOrAgent { get; }
         bool IsAuthenticated { get; }
     }
 

@@ -8,5 +8,5 @@ using ZendeskLite.Domain.Common;
 
 namespace ZendeskLite.Application.Features.TicketService.Commands.AddTicketComment
 {
-    public record AddCommentCommand(Guid TicketId, string CommentText, string UserId, bool IsAdminOrAgent) : IRequest<Result>;
+    public record AddCommentCommand(Guid TicketId, string CommentText) : IRequest<Result>;
 }

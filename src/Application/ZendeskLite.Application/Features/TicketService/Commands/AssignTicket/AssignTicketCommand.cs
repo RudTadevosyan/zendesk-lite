@@ -8,9 +8,5 @@ using ZendeskLite.Domain.Common;
 
 namespace ZendeskLite.Application.Features.TicketService.Commands.AssignTicket
 {
-    public record AssignTicketCommand(
-        Guid TicketId,
-        string TargetAgentId,
-        string RequestingUserId,
-        bool IsAdmin) : IRequest<Result>;
+    public record AssignTicketCommand(Guid TicketId, string TargetAgentId) : IRequest<Result>;
 }

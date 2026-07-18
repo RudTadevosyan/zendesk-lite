@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 using ZendeskLite.Application.DTOs;
 using ZendeskLite.Domain.Common;
 
-namespace ZendeskLite.Application.Features.TicketService.Queries.GetTicket
+namespace ZendeskLite.Application.Features.TicketService.Queries.GetAdminTicket
 {
-    public record GetAdminTicketByIdQuery(Guid Id, string AdminAgentId) : IRequest<Result<AdminTicketDto>>;
+    public record GetAdminTicketByIdQuery(Guid Id) : IRequest<Result<AdminTicketDto>>;
 }

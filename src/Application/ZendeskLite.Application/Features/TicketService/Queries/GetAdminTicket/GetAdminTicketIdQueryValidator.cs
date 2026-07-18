@@ -5,17 +5,13 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ZendeskLite.Application.Features.TicketService.Queries.GetTicket
+namespace ZendeskLite.Application.Features.TicketService.Queries.GetAdminTicket
 {
     public class GetAdminTicketByIdQueryValidator : AbstractValidator<GetAdminTicketByIdQuery>
     {
         public GetAdminTicketByIdQueryValidator()
         {
-            RuleFor(x => x.Id)
-                .NotEmpty().WithMessage("Ticket ID is required.");
-
-            RuleFor(x => x.AdminAgentId)
-                .NotEmpty().WithMessage("Admin/Agent identification is required.");
+            RuleFor(x => x.Id).NotEmpty().WithMessage("Ticket ID is required.");
         }
     }
 }

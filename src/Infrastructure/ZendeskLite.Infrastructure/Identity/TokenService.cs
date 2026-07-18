@@ -74,24 +74,44 @@ public sealed class TokenService : ITokenService
 
         var userId = await _cache.GetStringAsync($"refresh:{hashedToken}", ct);
         if (userId is null)
+        {
+            _logger.LogWarning("Refresh attempt with invalid or expired token hash: {Hash}", hashedToken);
             return Result.Failure<TokenResponse>(Error.NotFound("Token.Invalid", "Refresh token is invalid or expired."));
+        }
 
         await _cache.RemoveAsync($"refresh:{hashedToken}", ct);
 
         var user = await _userManager.FindByIdAsync(userId);
         if (user is null)
-            return Result.Failure<TokenResponse>(Error.NotFound("User.NotFound", "User no longer exists."));
+        {
+            _logger.LogError("Refresh failed: User {UserId} associated with token no longer exists.", userId);
+            return Result.Failure<TokenResponse>(Error.NotFound("User.NotFound", "User account not found."));
+        }
 
         _logger.LogInformation("Token refreshed successfully for user: {UserId}", userId);
+
+
         return await GenerateTokenAsync(user, ct);
     }
 
-    public async Task<Result> RevokeRefreshTokenAsync(string refreshToken, CancellationToken ct = default)
+    public async Task<Result> RevokeRefreshTokenAsync(string refreshToken, string currentUserId, CancellationToken ct = default)
     {
         var hashedToken = Convert.ToBase64String(SHA256.HashData(Encoding.UTF8.GetBytes(refreshToken)));
-        await _cache.RemoveAsync($"refresh:{hashedToken}", ct);
+        var key = $"refresh:{hashedToken}";
 
-        _logger.LogInformation("Refresh token revoked for hash: {Hash}", hashedToken);
+        var ownerId = await _cache.GetStringAsync(key, ct);
+
+        if (ownerId == null)
+            return Result.Failure(Error.NotFound("Token.NotFound", "Token not found."));
+
+        if (ownerId != currentUserId)
+        {
+            _logger.LogWarning("User {UserId} attempted to revoke a token belonging to {OwnerId}!", currentUserId, ownerId);
+            return Result.Failure(Error.Validation("Auth.Forbidden", "You cannot revoke a token that does not belong to you."));
+        }
+
+        await _cache.RemoveAsync(key, ct);
+        _logger.LogInformation("Refresh token revoked for user: {UserId}", currentUserId);
         return Result.Success();
     }
 }

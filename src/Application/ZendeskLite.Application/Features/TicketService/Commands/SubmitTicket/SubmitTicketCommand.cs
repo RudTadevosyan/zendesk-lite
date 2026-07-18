@@ -8,5 +8,5 @@ using ZendeskLite.Domain.Common;
 
 namespace ZendeskLite.Application.Features.TicketService.Commands.SubmitTicket
 {
-    public record SubmitTicketCommand(string Title, string Description, string CustomerId) : IRequest<Result<Guid>>;
+    public record SubmitTicketCommand(string Title, string Description) : IRequest<Result<Guid>>;
 }

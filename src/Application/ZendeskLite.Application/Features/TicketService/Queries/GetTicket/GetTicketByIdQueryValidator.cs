@@ -12,7 +12,6 @@ namespace ZendeskLite.Application.Features.TicketService.Queries.GetTicket
         public GetTicketByIdQueryValidator()
         {
             RuleFor(x => x.Id).NotEmpty().WithMessage("Ticket Id is required.");
-            RuleFor(x => x.CustomerId).NotEmpty().WithMessage("Customer Id is required.");
         }
     }
 }

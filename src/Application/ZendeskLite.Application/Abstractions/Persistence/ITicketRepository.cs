@@ -19,6 +19,7 @@ namespace ZendeskLite.Application.Abstractions.Persistence
 
         // Queries
         Task<Ticket?> GetByIdAsync(Guid id, CancellationToken ct);
+        Task<Ticket?> GetByIdReadOnlyAsync(Guid id, CancellationToken ct);
         Task<PagedResult<Ticket>> GetUnassignedTicketsAsync(int page, int pageSize, CancellationToken ct);
         Task<PagedResult<Ticket>> GetFilteredTicketsAsync(TicketQueryParameters parameters, CancellationToken ct);
     }

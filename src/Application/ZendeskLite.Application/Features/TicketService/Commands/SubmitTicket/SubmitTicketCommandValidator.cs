@@ -17,8 +17,6 @@ namespace ZendeskLite.Application.Features.TicketService.Commands.SubmitTicket
             RuleFor(x => x.Description)
                 .NotEmpty().WithMessage("Description is required.")
                 .MaximumLength(1000).WithMessage("Description cannot exceed 1000 characters.");
-            RuleFor(x => x.CustomerId)
-                .NotEmpty().WithMessage("Customer context is missing.");
         }
 
     }

@@ -1,30 +1,31 @@
 ﻿using MediatR;
 using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using ZendeskLite.Application.Abstractions.Common.Interfaces;
+using ZendeskLite.Application.Features.Identity.Commands.Revoke;
 using ZendeskLite.Domain.Common;
 
-namespace ZendeskLite.Application.Features.Identity.Commands.Revoke
+public class RevokeCommandHandler : IRequestHandler<RevokeCommand, Result>
 {
-    public class RevokeCommandHandler : IRequestHandler<RevokeCommand, Result>
+    private readonly ILogger<RevokeCommandHandler> _logger;
+    private readonly ITokenService _tokenService;
+    private readonly ICurrentUser _currentUser;
+
+    public RevokeCommandHandler(ITokenService tokenService, ILogger<RevokeCommandHandler> logger, ICurrentUser currentUser)
     {
-        private readonly ILogger<RevokeCommandHandler> _logger;
-        private readonly ITokenService _tokenService;
+        _tokenService = tokenService;
+        _logger = logger;
+        _currentUser = currentUser;
+    }
 
-        public RevokeCommandHandler(ITokenService tokenService, ILogger<RevokeCommandHandler> logger)
+    public async Task<Result> Handle(RevokeCommand request, CancellationToken ct)
+    {
+        if (!_currentUser.IsAuthenticated)
         {
-            _tokenService = tokenService;
-            _logger = logger;
+            return Result.Failure(Error.Failure("Auth.Unauthorized", "You must be logged in."));
         }
 
-        public async Task<Result> Handle(RevokeCommand request, CancellationToken cancellationToken)
-        {
-            _logger.LogInformation("Attempting to revoke refresh token");   
-            return await _tokenService.RevokeRefreshTokenAsync(request.RefreshToken, cancellationToken);
-        }
+        _logger.LogInformation("User {UserId} is attempting to revoke a token.", _currentUser.UserId);
+
+        return await _tokenService.RevokeRefreshTokenAsync(request.RefreshToken, _currentUser.UserId!, ct);
     }
 }

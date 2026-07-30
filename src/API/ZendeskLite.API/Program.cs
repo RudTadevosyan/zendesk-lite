@@ -4,6 +4,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Serilog;
 using System.Text;
+using ZendeskLite.API.Middlewares;
 using ZendeskLite.Application;
 using ZendeskLite.Domain.Entities;
 using ZendeskLite.Infrastructure;
@@ -96,6 +97,8 @@ public class Program
 
         // 5. Middleware Pipeline
         app.MapDefaultEndpoints();
+        app.UseMiddleware<JwtBlacklistMiddleware>();
+
 
         if (app.Environment.IsDevelopment())
         {

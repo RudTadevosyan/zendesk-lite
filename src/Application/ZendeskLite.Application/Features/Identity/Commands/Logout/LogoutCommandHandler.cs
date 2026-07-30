@@ -24,7 +24,25 @@ namespace ZendeskLite.Application.Features.Identity.Commands.Logout
 
         public async Task<Result> Handle(LogoutCommand request, CancellationToken cancellationToken)
         {
-            
+
+            _logger.LogInformation("Processing logout for user: {UserId}", request.CurrentUserId);
+
+            // Blacklist the current Access Token (JWT)
+            var revokeAccessResult = await _tokenService.RevokeAccessTokenAsync(request.AccessToken, cancellationToken);
+            if (revokeAccessResult.IsFailure)
+            {
+                return revokeAccessResult;
+            }
+
+            // Remove the Refresh Token from Redis
+            var revokeRefreshResult = await _tokenService.RevokeRefreshTokenAsync(request.RefreshToken, request.CurrentUserId, cancellationToken);
+            if (revokeRefreshResult.IsFailure)
+            {
+                return revokeRefreshResult;
+            }
+
+            _logger.LogInformation("User {UserId} successfully logged out.", request.CurrentUserId);
+            return Result.Success();
         }
     }
 }

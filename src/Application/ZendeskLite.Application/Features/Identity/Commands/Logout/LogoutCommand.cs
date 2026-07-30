@@ -8,5 +8,5 @@ using ZendeskLite.Domain.Common;
 
 namespace ZendeskLite.Application.Features.Identity.Commands.Logout
 {
-    public record LogoutCommand(string UserId) : IRequest<Result>;
+    public record LogoutCommand(string AccessToken, string RefreshToken, string CurrentUserId) : IRequest<Result>;
 }

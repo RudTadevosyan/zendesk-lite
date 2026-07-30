@@ -94,6 +94,38 @@ public sealed class TokenService : ITokenService
         return await GenerateTokenAsync(user, ct);
     }
 
+    public async Task<Result> RevokeAccessTokenAsync(string accessToken, CancellationToken ct = default)
+    {
+        var handler = new JwtSecurityTokenHandler(); // import handler
+
+        if (!handler.CanReadToken(accessToken))
+        {
+            return Result.Failure(Error.Validation("Token.Invalid", "Invalid access token format."));
+        }
+
+        var jwtToken = handler.ReadJwtToken(accessToken);
+        var jti = jwtToken.Claims.FirstOrDefault(c => c.Type == JwtRegisteredClaimNames.Jti)?.Value;
+
+        if (string.IsNullOrEmpty(jti))
+        {
+            return Result.Failure(Error.Validation("Token.MissingJti", "Access token is missing the required JTI claim."));
+        }
+
+        var timeRemaining = jwtToken.ValidTo - DateTime.UtcNow;
+
+        if (timeRemaining > TimeSpan.Zero)
+        {
+            await _cache.SetStringAsync($"blacklist:{jti}", "revoked", new DistributedCacheEntryOptions
+            {
+                AbsoluteExpirationRelativeToNow = timeRemaining
+            }, ct);
+
+            _logger.LogInformation("Access token with JTI {Jti} successfully revoked and blacklisted until {Expiry}", jti, jwtToken.ValidTo);
+        }
+
+        return Result.Success();
+    }
+
     public async Task<Result> RevokeRefreshTokenAsync(string refreshToken, string currentUserId, CancellationToken ct = default)
     {
         var hashedToken = Convert.ToBase64String(SHA256.HashData(Encoding.UTF8.GetBytes(refreshToken)));

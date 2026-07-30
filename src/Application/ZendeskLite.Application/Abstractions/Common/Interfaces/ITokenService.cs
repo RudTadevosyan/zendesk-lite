@@ -10,7 +10,6 @@ public interface ITokenService
     Task<Result<TokenResponse>> GenerateTokenAsync(AppUser user, CancellationToken ct = default);
     Task<Result<TokenResponse>> RefreshTokenAsync(string refreshToken, CancellationToken ct = default);
     Task<Result> RevokeRefreshTokenAsync(string refreshToken, string currentUserId, CancellationToken ct = default);
-
-    // Task<Result> RevokeAccessTokenAsync(string accessToken, CancellationToken ct); also jwt blaclist middleware 
+    Task<Result> RevokeAccessTokenAsync(string accessToken, CancellationToken ct); // with jwt blaclist middleware 
 
 }

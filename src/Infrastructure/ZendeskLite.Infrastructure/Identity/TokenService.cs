@@ -9,21 +9,29 @@ using Microsoft.IdentityModel.Tokens;
 using ZendeskLite.Domain.Common;
 using Microsoft.Extensions.Logging;
 using ZendeskLite.Application.Abstractions.Common.Interfaces;
+using StackExchange.Redis; 
 
 namespace ZendeskLite.Infrastructure.Services;
 
 public sealed class TokenService : ITokenService
 {
     private readonly IDistributedCache _cache;
+    private readonly IConnectionMultiplexer _redisConnection;
     private readonly UserManager<AppUser> _userManager;
-    private readonly ILogger<TokenService> _logger; 
+    private readonly ILogger<TokenService> _logger;
     private readonly string _jwtKey;
     private readonly string _jwtIssuer;
     private readonly string _jwtAudience;
 
-    public TokenService(IDistributedCache cache, IConfiguration config, UserManager<AppUser> userManager, ILogger<TokenService> logger)
+    public TokenService(
+        IDistributedCache cache,
+        IConnectionMultiplexer redisConnection,
+        IConfiguration config,
+        UserManager<AppUser> userManager,
+        ILogger<TokenService> logger)
     {
         _cache = cache;
+        _redisConnection = redisConnection;
         _userManager = userManager;
         _logger = logger;
 
@@ -39,12 +47,14 @@ public sealed class TokenService : ITokenService
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtKey));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+        var securityStamp = await _userManager.GetSecurityStampAsync(user);
 
         var claims = new List<Claim>
         {
             new(JwtRegisteredClaimNames.Sub, user.Id),
             new(JwtRegisteredClaimNames.Email, user.Email!),
-            new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+            new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+            new("AspNet.Identity.SecurityStamp", securityStamp ?? string.Empty)
         };
 
         var token = new JwtSecurityToken(
@@ -59,12 +69,19 @@ public sealed class TokenService : ITokenService
         var refreshToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
         var hashedToken = Convert.ToBase64String(SHA256.HashData(Encoding.UTF8.GetBytes(refreshToken)));
 
+
+        // Redis Set - User session indexing 
+        // Store the individual refresh token mapping
         await _cache.SetStringAsync($"refresh:{hashedToken}", user.Id, new DistributedCacheEntryOptions
         {
             AbsoluteExpirationRelativeToNow = TimeSpan.FromDays(7)
         }, ct);
 
-        _logger.LogInformation("Refresh token stored for user: {UserId}", user.Id);
+        // Add the token hash to the user's tracking set for fast global invalidation
+        var db = _redisConnection.GetDatabase();
+        await db.SetAddAsync($"user-tokens:{user.Id}", hashedToken);
+
+        _logger.LogInformation("Refresh token stored and indexed for user: {UserId}", user.Id);
         return Result.Success(new TokenResponse(accessToken, refreshToken, DateTime.UtcNow.AddMinutes(30)));
     }
 
@@ -80,6 +97,8 @@ public sealed class TokenService : ITokenService
         }
 
         await _cache.RemoveAsync($"refresh:{hashedToken}", ct);
+        var db = _redisConnection.GetDatabase();
+        await db.SetRemoveAsync($"user-tokens:{userId}", hashedToken);
 
         var user = await _userManager.FindByIdAsync(userId);
         if (user is null)
@@ -90,13 +109,12 @@ public sealed class TokenService : ITokenService
 
         _logger.LogInformation("Token refreshed successfully for user: {UserId}", userId);
 
-
         return await GenerateTokenAsync(user, ct);
     }
 
     public async Task<Result> RevokeAccessTokenAsync(string accessToken, CancellationToken ct = default)
     {
-        var handler = new JwtSecurityTokenHandler(); // import handler
+        var handler = new JwtSecurityTokenHandler();
 
         if (!handler.CanReadToken(accessToken))
         {
@@ -126,6 +144,32 @@ public sealed class TokenService : ITokenService
         return Result.Success();
     }
 
+    public async Task<Result> RevokeAllUserRefreshTokensAsync(string userId, CancellationToken ct = default)
+    {
+        _logger.LogInformation("Revoking all indexed refresh tokens for user: {UserId}", userId);
+
+        var db = _redisConnection.GetDatabase();
+        var setKey = $"user-tokens:{userId}";
+
+        // Get all token hashes belonging to this user instantly from their set
+        RedisValue[] tokenHashes = await db.SetMembersAsync(setKey);
+
+        if (tokenHashes.Length > 0)
+        {
+            // Build array of keys to delete
+            var keysToDelete = tokenHashes.Select(th => (RedisKey)$"refresh:{th}").ToArray();
+
+            // Delete all individual token keys and the user set atomically/in bulk - (avoid N+1)
+            await db.KeyDeleteAsync(keysToDelete);
+        }
+
+        // 3. Delete the tracking set itself
+        await db.KeyDeleteAsync(setKey);
+
+        _logger.LogInformation("Successfully revoked all refresh tokens for user: {UserId}", userId);
+        return Result.Success();
+    }
+
     public async Task<Result> RevokeRefreshTokenAsync(string refreshToken, string currentUserId, CancellationToken ct = default)
     {
         var hashedToken = Convert.ToBase64String(SHA256.HashData(Encoding.UTF8.GetBytes(refreshToken)));
@@ -143,6 +187,9 @@ public sealed class TokenService : ITokenService
         }
 
         await _cache.RemoveAsync(key, ct);
+        var db = _redisConnection.GetDatabase();
+        await db.SetRemoveAsync($"user-tokens:{currentUserId}", hashedToken);
+
         _logger.LogInformation("Refresh token revoked for user: {UserId}", currentUserId);
         return Result.Success();
     }

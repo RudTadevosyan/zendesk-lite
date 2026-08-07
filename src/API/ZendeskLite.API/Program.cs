@@ -95,9 +95,7 @@ public class Program
 
         var app = builder.Build();
 
-        // 5. Middleware Pipeline
         app.MapDefaultEndpoints();
-        app.UseMiddleware<JwtBlacklistMiddleware>();
 
 
         if (app.Environment.IsDevelopment())
@@ -112,6 +110,7 @@ public class Program
         app.UseAuthentication();
         app.UseAuthorization();
         
+        app.UseMiddleware<JwtBlacklistMiddleware>();
         app.MapControllers();
 
         // Run Migrations & Seeding AFTER the host starts

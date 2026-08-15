@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using ZendeskLite.Application.Abstractions.Common.Interfaces;
 using ZendeskLite.Application.Abstractions.Persistence;
 using ZendeskLite.Infrastructure.Identity;
+using ZendeskLite.Infrastructure.Messaging;
 using ZendeskLite.Infrastructure.Persistence;
 using ZendeskLite.Infrastructure.Services;
 
@@ -44,6 +45,9 @@ namespace ZendeskLite.Infrastructure
             services.AddScoped<ITicketRepository, TicketRepository>();
             services.AddScoped<ITicketAuditRepository, TicketAuditRepository>();
             services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<ApplicationDbContext>());
+            
+            services.AddSingleton<IMessagePublisher, MessagePublisher>();
+            
             return services;
         }
     }

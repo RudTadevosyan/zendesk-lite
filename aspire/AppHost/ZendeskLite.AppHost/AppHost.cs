@@ -9,7 +9,7 @@ var jwtIssuer = Environment.GetEnvironmentVariable("JWT_ISSUER") ?? "ZendeskLite
 var jwtAudience = Environment.GetEnvironmentVariable("JWT_AUDIENCE") ?? "ZendeskLiteUsers";
 
 
-//  Configure Redis for JWT Refresh Token Management
+// Configure Redis for JWT Refresh Token Management
 // After dont forget to make this also with volume as the database
 var redis = builder.AddRedis("redis")
     .WithRedisInsight();

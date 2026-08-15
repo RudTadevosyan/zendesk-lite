@@ -1,0 +1,18 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Worker">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>dotnet-ZendeskLite.Worker-a22da9b9-22a9-4d15-8730-1fe80f45f394</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\aspire\ServiceDefaults\ZendeskLite.ServiceDefaults\ZendeskLite.ServiceDefaults.csproj" />
+    <ProjectReference Include="..\..\Infrastructure\ZendeskLite.Infrastructure\ZendeskLite.Infrastructure.csproj" />
+  </ItemGroup>
+</Project>

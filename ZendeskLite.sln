@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.14.36408.4 d17.14
+VisualStudioVersion = 17.14.36408.4
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{02EA681E-C7D8-13C7-8484-4AC65E1B71E8}"
 EndProject
@@ -33,6 +33,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZendeskLite.AppHost", "aspi
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZendeskLite.ServiceDefaults", "aspire\ServiceDefaults\ZendeskLite.ServiceDefaults\ZendeskLite.ServiceDefaults.csproj", "{2CB47002-AE69-4848-9C55-5FB8796C15E0}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Worker", "Worker", "{E1E9E171-7D4A-4CA9-92A6-688875E9E172}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZendeskLite.Worker", "src\Worker\ZendeskLite.Worker\ZendeskLite.Worker.csproj", "{40FB55F9-3EEE-75B4-C803-50AACCFFB63F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -63,6 +67,10 @@ Global
 		{2CB47002-AE69-4848-9C55-5FB8796C15E0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2CB47002-AE69-4848-9C55-5FB8796C15E0}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2CB47002-AE69-4848-9C55-5FB8796C15E0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{40FB55F9-3EEE-75B4-C803-50AACCFFB63F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{40FB55F9-3EEE-75B4-C803-50AACCFFB63F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{40FB55F9-3EEE-75B4-C803-50AACCFFB63F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{40FB55F9-3EEE-75B4-C803-50AACCFFB63F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -80,6 +88,8 @@ Global
 		{597D4F3B-F69C-4BFC-9BC9-691A089DEBC1} = {91EE7962-AA9D-4626-A0EC-098AD1BE19FA}
 		{C53192D8-C5F5-489A-A346-5AEA9B936C96} = {3EDA50D7-2EA2-4E29-9752-230455D778E2}
 		{2CB47002-AE69-4848-9C55-5FB8796C15E0} = {597D4F3B-F69C-4BFC-9BC9-691A089DEBC1}
+		{E1E9E171-7D4A-4CA9-92A6-688875E9E172} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
+		{40FB55F9-3EEE-75B4-C803-50AACCFFB63F} = {E1E9E171-7D4A-4CA9-92A6-688875E9E172}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {7C3758C8-23A4-4B94-B354-F609975E42AA}

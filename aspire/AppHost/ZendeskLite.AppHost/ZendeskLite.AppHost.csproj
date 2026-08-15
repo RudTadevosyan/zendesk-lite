@@ -17,6 +17,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\src\API\ZendeskLite.API\ZendeskLite.API.csproj" />
+    <ProjectReference Include="..\..\..\src\Worker\ZendeskLite.Worker\ZendeskLite.Worker.csproj" />
   </ItemGroup>
 
 </Project>

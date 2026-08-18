@@ -10,19 +10,22 @@ public class AssignTicketCommandHandler : IRequestHandler<AssignTicketCommand, R
 {
     private readonly ITicketRepository _ticketRepository;
     private readonly ITicketAuditRepository _auditRepository;
+    private readonly IAgentRepository _agentRepository; 
     private readonly IApplicationDbContext _context;
     private readonly ILogger<AssignTicketCommandHandler> _logger;
-    private readonly ICurrentUser _currentUser; 
+    private readonly ICurrentUser _currentUser;
 
     public AssignTicketCommandHandler(
         ITicketRepository ticketRepository,
         ITicketAuditRepository auditRepository,
+        IAgentRepository agentRepository,
         IApplicationDbContext context,
         ILogger<AssignTicketCommandHandler> logger,
         ICurrentUser currentUser)
     {
         _ticketRepository = ticketRepository;
         _auditRepository = auditRepository;
+        _agentRepository = agentRepository;
         _context = context;
         _logger = logger;
         _currentUser = currentUser;
@@ -39,12 +42,28 @@ public class AssignTicketCommandHandler : IRequestHandler<AssignTicketCommand, R
             return Result.Failure(Error.Validation("403", "Agents can only assign tickets to themselves."));
         }
 
+        // Capture previous agent ID to handle re-assignment/transfer counts correctly
+        var previousAgentId = ticket.AgentId;
+        var isNewAssignment = string.IsNullOrEmpty(previousAgentId);
+        var isReassignment = !isNewAssignment && previousAgentId != request.TargetAgentId;
+
         using var transaction = await _context.Database.BeginTransactionAsync(ct);
         try
         {
             ticket.AgentId = request.TargetAgentId;
             ticket.UpdateLastModified();
             await _ticketRepository.UpdateAsync(ticket, ct);
+
+            if (isNewAssignment)
+            {
+                await _agentRepository.IncrementActiveLoadAsync(request.TargetAgentId, ct);
+            }
+            else if (isReassignment)
+            {
+                // Decrement old agent and increment new agent
+                await _agentRepository.DecrementActiveLoadAsync(previousAgentId!, ct);
+                await _agentRepository.IncrementActiveLoadAsync(request.TargetAgentId, ct);
+            }
 
             await _auditRepository.AddAuditLogAsync(new TicketAuditLog
             {

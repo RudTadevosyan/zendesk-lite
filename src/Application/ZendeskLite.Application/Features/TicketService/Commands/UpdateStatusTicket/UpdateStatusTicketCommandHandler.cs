@@ -5,19 +5,22 @@ using ZendeskLite.Application.Abstractions.Persistence;
 using ZendeskLite.Application.Features.TicketService.Commands.UpdateStatusTicket;
 using ZendeskLite.Domain.Common;
 using ZendeskLite.Domain.Entities;
+using ZendeskLite.Domain.Enums;
 
 public class UpdateTicketStatusCommandHandler : IRequestHandler<UpdateTicketStatusCommand, Result>
 {
     private readonly ITicketRepository _ticketRepository;
     private readonly ITicketAuditRepository _auditRepository;
-    private readonly ILogger<UpdateTicketStatusCommandHandler> _logger;
+    private readonly IAgentRepository _agentRepository;
     private readonly IApplicationDbContext _context;
     private readonly ICurrentUser _currentUser; 
+    private readonly ILogger<UpdateTicketStatusCommandHandler> _logger;
 
     public UpdateTicketStatusCommandHandler(
         ITicketRepository ticketRepository,
         ITicketAuditRepository auditRepository,
         IApplicationDbContext context,
+        IAgentRepository agentRepository,
         ILogger<UpdateTicketStatusCommandHandler> logger,
         ICurrentUser currentUser)
     {
@@ -26,6 +29,7 @@ public class UpdateTicketStatusCommandHandler : IRequestHandler<UpdateTicketStat
         _context = context;
         _logger = logger;
         _currentUser = currentUser;
+        _agentRepository = agentRepository;
     }
 
     public async Task<Result> Handle(UpdateTicketStatusCommand request, CancellationToken ct)
@@ -40,12 +44,24 @@ public class UpdateTicketStatusCommandHandler : IRequestHandler<UpdateTicketStat
             return Result.Failure(Error.Validation("403", "You are not authorized to update this ticket."));
         }
 
+        // See if we closing the ticket (Resolved or Archived) and if the current status is not already closed
+        bool isTransitioningToClosed =
+            (request.NewStatus == TicketStatus.Resolved || request.NewStatus == TicketStatus.Archived) &&
+            (ticket.Status != TicketStatus.Resolved && ticket.Status != TicketStatus.Archived);
+
         using var transaction = await _context.Database.BeginTransactionAsync(ct);
         try
         {
             ticket.Status = request.NewStatus;
             ticket.UpdateLastModified();
             await _ticketRepository.UpdateAsync(ticket, ct);
+
+            if (isTransitioningToClosed && !string.IsNullOrEmpty(ticket.AgentId))
+            {
+                await _agentRepository.DecrementActiveLoadAsync(ticket.AgentId, ct);
+                _logger.LogInformation("Agent {AgentId} active load decremented because ticket {TicketId} status changed to {Status}",
+                    ticket.AgentId, ticket.Id, request.NewStatus);
+            }
 
             await _auditRepository.AddAuditLogAsync(new TicketAuditLog
             {

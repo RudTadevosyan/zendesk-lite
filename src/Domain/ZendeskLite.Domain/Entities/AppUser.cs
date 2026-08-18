@@ -8,5 +8,6 @@ public class AppUser : IdentityUser
 
     // for agents
     public TicketCategory? AgentSpecialty { get; set; }
+    public bool IsAvailable { get; set; }
     public int ActiveTicketCount { get; set; } = 0;
 }

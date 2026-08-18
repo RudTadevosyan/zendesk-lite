@@ -44,6 +44,7 @@ namespace ZendeskLite.Infrastructure
             services.AddScoped<ITokenService, TokenService>();
             services.AddScoped<ITicketRepository, TicketRepository>();
             services.AddScoped<ITicketAuditRepository, TicketAuditRepository>();
+            services.AddScoped<IAgentRepository, AgentRepository>();
             services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<ApplicationDbContext>());
             
             services.AddSingleton<IMessagePublisher, MessagePublisher>();

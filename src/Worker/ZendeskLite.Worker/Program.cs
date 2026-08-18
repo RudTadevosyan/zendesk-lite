@@ -6,7 +6,7 @@ var builder = Host.CreateApplicationBuilder(args);
 builder.Services.AddInfrastructure(builder.Configuration);
 
 // 2. Register your RabbitMQ Ticket Consumer as a Hosted Background Service
-builder.AddHostedService<TicketConsumerWorker>();
+builder.Services.AddHostedService<TicketConsumerWorker>();
 
 var host = builder.Build();
 host.Run();

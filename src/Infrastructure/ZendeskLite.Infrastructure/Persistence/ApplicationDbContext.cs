@@ -20,13 +20,14 @@ public class ApplicationDbContext : IdentityDbContext<AppUser>, IApplicationDbCo
     {
         base.OnModelCreating(builder);
 
-        builder.Entity<AppUser>().ToTable("users");
+        builder.Entity<AppUser>().ToTable("users").HasIndex(u => new {u.AgentSpecialty, u.ActiveTicketCount});
         builder.Entity<IdentityRole>().ToTable("roles");
         builder.Entity<IdentityUserRole<string>>().ToTable("user_roles");
         builder.Entity<IdentityUserClaim<string>>().ToTable("user_claims");
         builder.Entity<IdentityUserLogin<string>>().ToTable("user_logins");
         builder.Entity<IdentityRoleClaim<string>>().ToTable("role_claims");
         builder.Entity<IdentityUserToken<string>>().ToTable("user_tokens");
+
 
         // Automatically apply all IEntityTypeConfiguration classes found in this assembly
         builder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);

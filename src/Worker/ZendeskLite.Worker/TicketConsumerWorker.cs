@@ -33,7 +33,7 @@ public sealed class TicketConsumerWorker : BackgroundService
         _logger.LogInformation("Ticket Consumer Worker is starting up...");
 
         var connectionString = _configuration.GetConnectionString("messaging")
-                               ?? throw new InvalidOperationException("RabbitMQ connection string 'messaging' not found.");
+                             ?? throw new InvalidOperationException("RabbitMQ connection string 'messaging' not found.");
 
         var factory = new ConnectionFactory { Uri = new Uri(connectionString) };
 
@@ -81,8 +81,9 @@ public sealed class TicketConsumerWorker : BackgroundService
                 // while EntityFramework DbContext is Scoped.
                 using var scope = _serviceProvider.CreateScope();
                 var ticketRepository = scope.ServiceProvider.GetRequiredService<ITicketRepository>();
+                var agentRepository = scope.ServiceProvider.GetRequiredService<IAgentRepository>();
 
-                // 1. Fetch the raw ticket from database
+                // Fetch the raw ticket from database
                 var ticket = await ticketRepository.GetByIdAsync(message.TicketId, stoppingToken);
                 if (ticket == null)
                 {
@@ -90,6 +91,7 @@ public sealed class TicketConsumerWorker : BackgroundService
                     await _channel.BasicAckAsync(ea.DeliveryTag, multiple: false);
                     return;
                 }
+
                 // ------- Simulate AI Text Optimization & Categorization 
                 ticket.Title = "Optimized: " + ticket.Title;
                 ticket.CleanedDescription = $"[AI Cleaned]: {ticket.RawDescription}";
@@ -97,8 +99,22 @@ public sealed class TicketConsumerWorker : BackgroundService
                 ticket.Priority = TicketPriority.High;
                 ticket.Status = TicketStatus.UnderReview;
 
-                // ------ also we need to connect to the agent repository for assigning algorithm
-                
+                // ------ Connect to the agent repository for assignment algorithm
+                var assignedAgent = await agentRepository.GetBestAvailableAgentAsync(ticket.Category, stoppingToken);
+                if (assignedAgent != null)
+                {
+                    ticket.AgentId = assignedAgent.Id;
+
+                    // Atomically increment in database using just the ID
+                    await agentRepository.IncrementActiveLoadAsync(assignedAgent.Id, stoppingToken);
+
+                    _logger.LogInformation("Assigned Ticket {TicketId} to Agent {AgentEmail}",
+                        ticket.Id, assignedAgent.Email);
+                }
+                else
+                {
+                    _logger.LogWarning("No available agent found for category {Category}. Ticket left unassigned.", ticket.Category);
+                }
 
                 await ticketRepository.UpdateAsync(ticket, stoppingToken);
 

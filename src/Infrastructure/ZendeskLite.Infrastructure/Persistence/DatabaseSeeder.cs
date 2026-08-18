@@ -125,5 +125,51 @@ public static class DatabaseSeeder
                 Log.Information("Seeded Billing Agent: {Email}", billingEmail);
             }
         }
+
+        // General Support Agent
+        var generalEmail = "agent.general@zendesk.com";
+        if (await userManager.FindByEmailAsync(generalEmail) == null)
+        {
+            var generalAgent = new AppUser
+            {
+                UserName = generalEmail,
+                Email = generalEmail,
+                FirstName = "Alice",
+                LastName = "General",
+                AgentSpecialty = TicketCategory.General,
+                ActiveTicketCount = 0,
+                EmailConfirmed = true
+            };
+
+            var result = await userManager.CreateAsync(generalAgent, "Password123!");
+            if (result.Succeeded)
+            {
+                await userManager.AddToRoleAsync(generalAgent, "Agent");
+                Log.Information("Seeded General Support Agent: {Email}", generalEmail);
+            }
+        }
+
+        // Access Management Agent
+        var accessEmail = "agent.access@zendesk.com";
+        if (await userManager.FindByEmailAsync(accessEmail) == null)
+        {
+            var accessAgent = new AppUser
+            {
+                UserName = accessEmail,
+                Email = accessEmail,
+                FirstName = "Bob",
+                LastName = "Security",
+                AgentSpecialty = TicketCategory.AccessManagement,
+                ActiveTicketCount = 0,
+                EmailConfirmed = true
+            };
+
+            var result = await userManager.CreateAsync(accessAgent, "Password123!");
+            if (result.Succeeded)
+            {
+                await userManager.AddToRoleAsync(accessAgent, "Agent");
+                Log.Information("Seeded Access Management Agent: {Email}", accessEmail);
+            }
+        }
     }
 }

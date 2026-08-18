@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using ZendeskLite.Application.DTOs;
 using ZendeskLite.Domain.Enums;
 
 namespace ZendeskLite.Application.Abstractions.Persistence
@@ -18,6 +19,6 @@ namespace ZendeskLite.Application.Abstractions.Persistence
         Task DecrementActiveLoadAsync(string agentId, CancellationToken cancellationToken);
 
         Task SetAvailabilityAsync(string agentId, bool isAvailable, CancellationToken cancellationToken);
+        Task<IEnumerable<AppUser>> GetAllAgentsAsync(CancellationToken cancellationToken);
     }
-}
 }

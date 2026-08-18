@@ -54,5 +54,11 @@ namespace ZendeskLite.Infrastructure.Persistence
                 .ExecuteUpdateAsync(s => s.SetProperty(u => u.IsAvailable, isAvailable), cancellationToken);
         }
 
+        public async Task<IEnumerable<AppUser>> GetAllAgentsAsync(CancellationToken cancellationToken)
+        {
+            return await _context.Users
+                .ToListAsync(cancellationToken);
+        }
+
     }
 }

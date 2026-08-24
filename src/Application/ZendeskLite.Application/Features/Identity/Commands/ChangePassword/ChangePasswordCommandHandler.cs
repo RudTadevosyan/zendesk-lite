@@ -43,12 +43,8 @@ namespace ZendeskLite.Application.Features.Identity.Commands.ChangePassword
 
             _logger.LogInformation("Password changed successfully for user: {UserId}", user.Id);
 
-            // update security stamp to invalidate existing tokens
-            await _userManager.UpdateSecurityStampAsync(user);
-
-            _logger.LogInformation("Security stamp updated for user: {UserId}", user.Id);
             /*
-             If you only rely on the Security Stamp, the very next request they make (or a concurrent request fired a split second later) 
+             If you only rely on the Security Stamp,(I dont use security stamp!) the very next request they make (or a concurrent request fired a split second later) 
             might slip through before the database query catches up, or it forces an extra database lookup.
             */
             _logger.LogInformation("Revoking access token for user: {UserId}", user.Id);

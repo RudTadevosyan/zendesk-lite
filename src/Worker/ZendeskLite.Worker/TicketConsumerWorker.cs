@@ -44,7 +44,7 @@ public sealed class TicketConsumerWorker : BackgroundService
                 _connection = await factory.CreateConnectionAsync(stoppingToken);
                 _channel = await _connection.CreateChannelAsync(cancellationToken: stoppingToken);
 
-                // process 1 message at a time per worker instance
+                // process 1 message at a time per worker 
                 await _channel.BasicQosAsync(prefetchSize: 0, prefetchCount: 1, global: false, cancellationToken: stoppingToken);
 
                 _logger.LogInformation("Successfully connected to RabbitMQ. Listening for tickets...");
@@ -92,14 +92,14 @@ public sealed class TicketConsumerWorker : BackgroundService
                     return;
                 }
 
-                // ------- Simulate AI Text Optimization & Categorization 
+                // Simulate AI Text Optimization & Categorization 
                 ticket.Title = "Optimized: " + ticket.Title;
                 ticket.CleanedDescription = $"[AI Cleaned]: {ticket.RawDescription}";
                 ticket.Category = TicketCategory.Billing;
                 ticket.Priority = TicketPriority.High;
                 ticket.Status = TicketStatus.UnderReview;
 
-                // ------ Connect to the agent repository for assignment algorithm
+                // Connect to the agent repository for assignment algorithm
                 var assignedAgent = await agentRepository.GetBestAvailableAgentAsync(ticket.Category, stoppingToken);
                 if (assignedAgent != null)
                 {

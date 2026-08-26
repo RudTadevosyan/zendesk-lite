@@ -67,8 +67,8 @@ public class Program
                 IssuerSigningKey = new SymmetricSecurityKey(
                     Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!))
             };
+            options.SaveToken = true; // for saving the raw jwt token in the HttpContext
         });
-
 
         // Swagger
         builder.Services.AddSwaggerGen(c =>
@@ -90,13 +90,11 @@ public class Program
             });
         });
 
-
         builder.Services.AddControllers();
 
         var app = builder.Build();
 
         app.MapDefaultEndpoints();
-
 
         if (app.Environment.IsDevelopment())
         {
@@ -107,10 +105,11 @@ public class Program
         app.UseHttpsRedirection();
         app.UseSerilogRequestLogging();
 
+        // Check Redis blacklist BEFORE authenticating the token signature
+        app.UseMiddleware<JwtBlacklistMiddleware>();
         app.UseAuthentication();
         app.UseAuthorization();
-        
-        app.UseMiddleware<JwtBlacklistMiddleware>();
+
         app.MapControllers();
 
         // Run Migrations & Seeding AFTER the host starts

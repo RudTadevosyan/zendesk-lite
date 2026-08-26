@@ -34,6 +34,7 @@ namespace ZendeskLite.Infrastructure.Migrations
                     FirstName = table.Column<string>(type: "text", nullable: false),
                     LastName = table.Column<string>(type: "text", nullable: false),
                     AgentSpecialty = table.Column<int>(type: "integer", nullable: true),
+                    IsAvailable = table.Column<bool>(type: "boolean", nullable: false),
                     ActiveTicketCount = table.Column<int>(type: "integer", nullable: false),
                     UserName = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true),
                     NormalizedUserName = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true),
@@ -87,10 +88,12 @@ namespace ZendeskLite.Infrastructure.Migrations
                     Status = table.Column<string>(type: "character varying(30)", maxLength: 30, nullable: false),
                     Priority = table.Column<string>(type: "character varying(30)", maxLength: 30, nullable: false),
                     Category = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    Comments = table.Column<string>(type: "text", nullable: true),
                     CustomerId = table.Column<string>(type: "text", nullable: false),
                     AgentId = table.Column<string>(type: "text", nullable: true),
-                    Created = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
-                    LastModified = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
+                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    LastModifiedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -203,8 +206,9 @@ namespace ZendeskLite.Infrastructure.Migrations
                     Action = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
                     ChangedByUserId = table.Column<string>(type: "character varying(450)", maxLength: 450, nullable: false),
                     Notes = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true),
-                    Created = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
-                    LastModified = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
+                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    LastModifiedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -262,6 +266,11 @@ namespace ZendeskLite.Infrastructure.Migrations
                 name: "EmailIndex",
                 table: "users",
                 column: "NormalizedEmail");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_users_AgentSpecialty_ActiveTicketCount",
+                table: "users",
+                columns: new[] { "AgentSpecialty", "ActiveTicketCount" });
 
             migrationBuilder.CreateIndex(
                 name: "UserNameIndex",

@@ -42,7 +42,7 @@ public class AssignTicketCommandHandler : IRequestHandler<AssignTicketCommand, R
             return Result.Failure(Error.Validation("403", "Agents can only assign tickets to themselves."));
         }
 
-        // Capture previous agent ID to handle re-assignment/transfer counts correctly
+        // capture previous agent ID to handle re-assignment or transfer counts correctly
         var previousAgentId = ticket.AgentId;
         var isNewAssignment = string.IsNullOrEmpty(previousAgentId);
         var isReassignment = !isNewAssignment && previousAgentId != request.TargetAgentId;

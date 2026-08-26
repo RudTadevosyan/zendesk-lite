@@ -26,6 +26,9 @@ namespace ZendeskLite.Domain.Common
         public static Result Failure(Error error) => new(false, error);
         public static Result<T> Success<T>(T value) => new(value, true, null);
         public static Result<T> Failure<T>(Error error) => new(default, false, error);
+
+        // for validation behaviour 
+        public static Result ValidationFailure(Error error) => new(false, error);
     }
 
     public class Result<T> : Result

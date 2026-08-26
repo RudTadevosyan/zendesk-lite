@@ -12,12 +12,9 @@ namespace ZendeskLite.Application.Abstractions.Persistence
 {
     public interface ITicketRepository
     {
-        // Commands
         Task AddAsync(Ticket ticket, CancellationToken ct);
         Task UpdateAsync(Ticket ticket, CancellationToken ct);
         Task SoftDeleteAsync(Guid id, CancellationToken ct);
-
-        // Queries
         Task<Ticket?> GetByIdAsync(Guid id, CancellationToken ct);
         Task<Ticket?> GetByIdReadOnlyAsync(Guid id, CancellationToken ct);
         Task<PagedResult<Ticket>> GetUnassignedTicketsAsync(int page, int pageSize, CancellationToken ct);

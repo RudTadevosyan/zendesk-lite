@@ -161,7 +161,7 @@ public sealed class TokenService : ITokenService
             await db.KeyDeleteAsync(keysToDelete);
         }
 
-        // 3. Delete the tracking set itself
+        // Delete the tracking set itself
         await db.KeyDeleteAsync(setKey);
 
         _logger.LogInformation("Successfully revoked all refresh tokens for user: {UserId}", userId);

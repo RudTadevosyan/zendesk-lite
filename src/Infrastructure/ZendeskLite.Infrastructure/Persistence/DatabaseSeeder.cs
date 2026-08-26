@@ -17,7 +17,7 @@ public static class DatabaseSeeder
         var userManager = services.GetRequiredService<UserManager<AppUser>>();
         var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
 
-        //  Resilient Migration Loop ---
+        //  Resilient Migration Loop 
         int maxRetries = 6;
         int delaySeconds = 2;
         bool migrationSucceeded = false;

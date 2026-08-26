@@ -1,6 +1,8 @@
+using Microsoft.Extensions.Hosting;
+
 var builder = DistributedApplication.CreateBuilder(args);
 
-// Env
+// Load Environment Variables from .env file
 DotNetEnv.Env.Load();
 var jwtKey = Environment.GetEnvironmentVariable("JWT_SECRET_KEY")
              ?? throw new InvalidOperationException("JWT_SECRET_KEY is not configured in .env or environment.");
@@ -8,10 +10,9 @@ var jwtKey = Environment.GetEnvironmentVariable("JWT_SECRET_KEY")
 var jwtIssuer = Environment.GetEnvironmentVariable("JWT_ISSUER") ?? "ZendeskLite";
 var jwtAudience = Environment.GetEnvironmentVariable("JWT_AUDIENCE") ?? "ZendeskLiteUsers";
 
-
-// Configure Redis for JWT Refresh Token Management
-// After dont forget to make this also with volume as the database
+// Configure Redis for JWT Refresh Token Management (with data volume)
 var redis = builder.AddRedis("redis")
+    .WithDataVolume("redisdata")
     .WithRedisInsight();
 
 // Configure PostgreSQL and define the main database
@@ -25,7 +26,6 @@ var database = postgres.AddDatabase("zendeskdb");
 var rabbitMq = builder.AddRabbitMQ("messaging");
 
 // Inject dependencies into your Presentation/Web API layer
-// The project metadata namespace is auto-generated based on the folder/project name
 var webApi = builder.AddProject<Projects.ZendeskLite_API>("webapi")
     .WithReference(database)
     .WaitFor(database)
@@ -38,10 +38,11 @@ var webApi = builder.AddProject<Projects.ZendeskLite_API>("webapi")
     .WithEnvironment("Jwt__Issuer", jwtIssuer)
     .WithEnvironment("Jwt__Audience", jwtAudience);
 
-
-// Future Phase Reference: For the workers service 
-// builder.AddProject<Projects.ZendeskLite_Worker>("worker")
-//     .WithReference(database)
-//     .WithReference(rabbitMq);
+// Configure and spin up the Background Worker Service for RabbitMQ consumption
+var worker = builder.AddProject<Projects.ZendeskLite_Worker>("worker")
+    .WithReference(database)
+    .WaitFor(database)
+    .WithReference(rabbitMq)
+    .WaitFor(rabbitMq);
 
 builder.Build().Run();

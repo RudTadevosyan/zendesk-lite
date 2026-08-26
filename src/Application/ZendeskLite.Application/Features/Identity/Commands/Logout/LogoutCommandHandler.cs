@@ -35,10 +35,13 @@ namespace ZendeskLite.Application.Features.Identity.Commands.Logout
             }
 
             // Remove the Refresh Token from Redis
-            var revokeRefreshResult = await _tokenService.RevokeRefreshTokenAsync(request.RefreshToken, request.CurrentUserId, cancellationToken);
-            if (revokeRefreshResult.IsFailure)
+            if (request.RefreshToken != null)
             {
-                return revokeRefreshResult;
+                var revokeRefreshResult = await _tokenService.RevokeRefreshTokenAsync(request.RefreshToken, request.CurrentUserId, cancellationToken);
+                if (revokeRefreshResult.IsFailure)
+                {
+                    return revokeRefreshResult;
+                }
             }
 
             _logger.LogInformation("User {UserId} successfully logged out.", request.CurrentUserId);

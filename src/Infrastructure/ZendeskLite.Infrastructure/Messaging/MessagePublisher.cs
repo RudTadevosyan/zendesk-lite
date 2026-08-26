@@ -2,8 +2,6 @@
 using Microsoft.Extensions.Logging;
 using RabbitMQ.Client;
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -17,19 +15,11 @@ namespace ZendeskLite.Infrastructure.Messaging
         private IConnection? _connection;
         private IChannel? _channel;
 
-        // Exchange Names
         private const string MainExchange = "zendesk.direct.exchange";
-        private const string DeadLetterExchange = "zendesk.dlx.exchange";
-
-        // Queue Names
-        private const string TicketQueue = "zendesk.ticket.queue";
-        private const string DeadLetterQueue = "zendesk.dlx.queue";
-
         private readonly ILogger<MessagePublisher> _logger;
 
         public MessagePublisher(IConfiguration configuration, ILogger<MessagePublisher> logger)
         {
-
             var connectionString = configuration.GetConnectionString("messaging")
                                    ?? throw new InvalidOperationException("RabbitMQ connection string 'messaging' not found.");
 
@@ -41,46 +31,18 @@ namespace ZendeskLite.Infrastructure.Messaging
             _logger = logger;
         }
 
-        private async Task InitializeAsync()
+        private async Task EnsureConnectedAsync(CancellationToken ct)
         {
-            if ((_connection != null && _connection.IsOpen) && (_channel != null && _channel.IsOpen))
+            if (_connection != null && _connection.IsOpen && _channel != null && _channel.IsOpen)
                 return;
 
-            _connection = await _connectionFactory.CreateConnectionAsync();
-            _channel = await _connection.CreateChannelAsync();
-
-            // Main Direct Exchange
-            await _channel.ExchangeDeclareAsync(MainExchange, ExchangeType.Direct, durable: true);
-            
-            // Dead Letter Exchange & Queue 
-            await _channel.ExchangeDeclareAsync(DeadLetterExchange, ExchangeType.Direct, durable: true);
-            await _channel.QueueDeclareAsync(DeadLetterQueue, durable: true, exclusive: false, autoDelete: false);
-            await _channel.QueueBindAsync(DeadLetterQueue, DeadLetterExchange, routingKey: "ticket.deadletter");
-
-
-            // Declare Main Queue with Dead Letter Arguments pointing to DLX
-            var queueArgs = new Dictionary<string, object?>
-            {
-                { "x-dead-letter-exchange", DeadLetterExchange },
-                { "x-dead-letter-routing-key", "ticket.deadletter" }
-            };
-
-            await _channel.QueueDeclareAsync(
-                queue: TicketQueue,
-                durable: true,
-                exclusive: false,
-                autoDelete: false,
-                arguments: queueArgs);
-
-            // Bind Main Queue to Main Exchange
-            await _channel.QueueBindAsync(TicketQueue, MainExchange, routingKey: "ticket.submitted");
-
-            _logger.LogInformation("RabbitMQ topology initialized with DLX safety net.");
+            _connection = await _connectionFactory.CreateConnectionAsync(ct);
+            _channel = await _connection.CreateChannelAsync(cancellationToken: ct);
         }
 
         public async Task PublishAsync<T>(T message, string routingKey, CancellationToken ct = default) where T : class
         {
-            await InitializeAsync();
+            await EnsureConnectedAsync(ct);
 
             var json = JsonSerializer.Serialize(message);
             var body = Encoding.UTF8.GetBytes(json);

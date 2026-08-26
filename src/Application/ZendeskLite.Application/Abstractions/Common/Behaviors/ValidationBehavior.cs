@@ -43,19 +43,19 @@ public class ValidationBehavior<TRequest, TResponse> : IPipelineBehavior<TReques
         {
             var valueType = typeof(TResult).GetGenericArguments()[0];
 
-            // Explicitly find the generic Failure<T> method by filtering for Generic Methods
+            // Target ValidationFailure instead of Failure to avoid overload ambiguity
             var method = typeof(Result)
                 .GetMethods(BindingFlags.Public | BindingFlags.Static)
-                .FirstOrDefault(m => m.Name == nameof(Result.Failure)
-                                     && m.IsGenericMethod
-                                     && m.GetGenericArguments().Length == 1)!;
+                .FirstOrDefault(m => m.Name == nameof(Result.ValidationFailure)
+                                   && m.IsGenericMethod
+                                   && m.GetGenericArguments().Length == 1)!;
 
             return (TResult)method.MakeGenericMethod(valueType).Invoke(null, new object[] { error })!;
         }
 
-        // Explicitly find the non-generic Failure method by providing parameter types
+        // Target ValidationFailure instead of Failure here too
         var nonGenericMethod = typeof(Result)
-            .GetMethod(nameof(Result.Failure), new[] { typeof(Error) })!;
+            .GetMethod(nameof(Result.ValidationFailure), new[] { typeof(Error) })!;
 
         return (TResult)nonGenericMethod.Invoke(null, new object[] { error })!;
     }

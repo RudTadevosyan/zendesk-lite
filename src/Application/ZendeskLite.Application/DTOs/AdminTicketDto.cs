@@ -11,6 +11,7 @@ namespace ZendeskLite.Application.DTOs
         TicketCategory Category,
         string? Comments,
         DateTimeOffset CreatedAt,
+
         // Admin/Agent specific fields
         DateTimeOffset UpdatedAt,
         DateTimeOffset LastModifiedAt,

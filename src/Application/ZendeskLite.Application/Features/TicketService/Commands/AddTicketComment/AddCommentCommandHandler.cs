@@ -1,5 +1,6 @@
 ﻿using MediatR;
 using Microsoft.Extensions.Logging;
+using Microsoft.EntityFrameworkCore;
 using ZendeskLite.Application.Abstractions.Common.Interfaces;
 using ZendeskLite.Application.Abstractions.Persistence;
 using ZendeskLite.Application.Features.TicketService.Commands.AddTicketComment;
@@ -12,14 +13,14 @@ public class AddCommentCommandHandler : IRequestHandler<AddCommentCommand, Resul
     private readonly ITicketAuditRepository _auditRepository;
     private readonly IApplicationDbContext _context;
     private readonly ILogger<AddCommentCommandHandler> _logger;
-    private readonly ICurrentUser _currentUser; 
+    private readonly ICurrentUser _currentUser;
 
     public AddCommentCommandHandler(
         ITicketRepository ticketRepository,
         ITicketAuditRepository auditRepository,
         IApplicationDbContext context,
         ILogger<AddCommentCommandHandler> logger,
-        ICurrentUser currentUser) 
+        ICurrentUser currentUser)
     {
         _ticketRepository = ticketRepository;
         _auditRepository = auditRepository;
@@ -31,7 +32,7 @@ public class AddCommentCommandHandler : IRequestHandler<AddCommentCommand, Resul
     public async Task<Result> Handle(AddCommentCommand request, CancellationToken ct)
     {
         var userId = _currentUser.UserId;
-        var isAdminOrAgent = _currentUser.IsAdminOrAgent; 
+        var isAdminOrAgent = _currentUser.IsAdminOrAgent;
 
         _logger.LogInformation("Attempting to add comment to TicketId: {TicketId} by User: {UserId}", request.TicketId, userId);
 
@@ -48,33 +49,46 @@ public class AddCommentCommandHandler : IRequestHandler<AddCommentCommand, Resul
             return Result.Failure(Error.Validation("403", "You are not authorized to comment on this ticket."));
         }
 
-        using var transaction = await _context.Database.BeginTransactionAsync(ct);
+        // Create the execution strategy to safely run transactions with NpgsqlRetryingExecutionStrategy
+        var strategy = _context.Database.CreateExecutionStrategy();
 
         try
         {
-            ticket.Comments = request.CommentText;
-            ticket.UpdateLastModified();
-            await _ticketRepository.UpdateAsync(ticket, ct);
-
-            await _auditRepository.AddAuditLogAsync(new TicketAuditLog
+            return await strategy.ExecuteAsync(async () =>
             {
-                TicketId = ticket.Id,
-                Action = "Comment Added",
-                ChangedByUserId = userId!, // Safe to use because we checked Auth status
-                Notes = "New comment added to ticket."
-            }, ct);
+                using var transaction = await _context.Database.BeginTransactionAsync(ct);
 
-            await _context.SaveChangesAsync(ct);
-            await transaction.CommitAsync(ct);
+                try
+                {
+                    ticket.Comments = request.CommentText;
+                    ticket.UpdateLastModified();
+                    await _ticketRepository.UpdateAsync(ticket, ct);
 
-            _logger.LogInformation("Successfully added comment to Ticket {TicketId} by User {UserId}", ticket.Id, userId);
+                    await _auditRepository.AddAuditLogAsync(new TicketAuditLog
+                    {
+                        TicketId = ticket.Id,
+                        Action = "Comment Added",
+                        ChangedByUserId = userId!,
+                        Notes = "New comment added to ticket."
+                    }, ct);
 
-            return Result.Success();
+                    await _context.SaveChangesAsync(ct);
+                    await transaction.CommitAsync(ct);
+
+                    _logger.LogInformation("Successfully added comment to Ticket {TicketId} by User {UserId}", ticket.Id, userId);
+
+                    return Result.Success();
+                }
+                catch
+                {
+                    await transaction.RollbackAsync(ct);
+                    throw; // Rethrow so the execution strategy knows an exception occurred and can retry if transient
+                }
+            });
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "An error occurred while adding a comment to Ticket {TicketId} by User {UserId}", request.TicketId, userId);
-            await transaction.RollbackAsync(ct);
             return Result.Failure(Error.Failure("500", "An internal error occurred."));
         }
     }

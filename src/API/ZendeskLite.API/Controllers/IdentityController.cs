@@ -115,7 +115,6 @@ public class IdentityController : ControllerBase
             Message = "Successfully authenticated via JWT!"
         });
     }
-
     private IActionResult HandleError(Error error)
     {
         return error.Type switch

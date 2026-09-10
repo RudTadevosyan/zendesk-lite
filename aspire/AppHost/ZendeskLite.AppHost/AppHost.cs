@@ -23,7 +23,8 @@ var postgres = builder.AddPostgres("postgres")
 var database = postgres.AddDatabase("zendeskdb");
 
 // Configure RabbitMQ for Async Messaging
-var rabbitMq = builder.AddRabbitMQ("messaging");
+var rabbitMq = builder.AddRabbitMQ("messaging")
+                      .WithManagementPlugin();
 
 // Inject dependencies into your Presentation/Web API layer
 var webApi = builder.AddProject<Projects.ZendeskLite_API>("webapi")

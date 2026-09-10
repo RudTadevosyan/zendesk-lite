@@ -11,6 +11,6 @@ namespace ZendeskLite.Domain.Enums
         General,
         TechnicalSupport,
         Billing,
-        AccessManagement
+        AccessManagement,
     }
 }

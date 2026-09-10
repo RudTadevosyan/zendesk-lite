@@ -55,6 +55,15 @@ public sealed class TokenService : ITokenService
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
         };
 
+        // include the user's roles in the claims to not hit db everytime we need to validate the token
+
+        var roles = await _userManager.GetRolesAsync(user);
+
+        foreach (var role in roles)
+        {
+            claims.Add(new Claim(ClaimTypes.Role, role));
+        }
+
         var token = new JwtSecurityToken(
             issuer: _jwtIssuer,
             audience: _jwtAudience,

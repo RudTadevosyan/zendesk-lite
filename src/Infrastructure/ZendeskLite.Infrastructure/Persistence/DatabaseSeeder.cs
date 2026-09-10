@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
+using System.Linq.Expressions;
 using ZendeskLite.Domain.Enums;
 
 namespace ZendeskLite.Infrastructure.Persistence;
@@ -56,6 +57,7 @@ public static class DatabaseSeeder
         {
             Log.Information("Seeding default security roles and mock data...");
             await SeedRolesAsync(roleManager);
+            await SeedAdminAsync(userManager); 
             await SeedAgentsAsync(userManager);
         }
         catch (Exception ex)
@@ -91,6 +93,7 @@ public static class DatabaseSeeder
                 FirstName = "Jane",
                 LastName = "Tech",
                 AgentSpecialty = TicketCategory.TechnicalSupport,
+                IsAvailable = true,
                 ActiveTicketCount = 0,
                 EmailConfirmed = true
             };
@@ -114,6 +117,7 @@ public static class DatabaseSeeder
                 FirstName = "John",
                 LastName = "Billing",
                 AgentSpecialty = TicketCategory.Billing,
+                IsAvailable = true,
                 ActiveTicketCount = 0,
                 EmailConfirmed = true
             };
@@ -137,6 +141,7 @@ public static class DatabaseSeeder
                 FirstName = "Alice",
                 LastName = "General",
                 AgentSpecialty = TicketCategory.General,
+                IsAvailable = true,
                 ActiveTicketCount = 0,
                 EmailConfirmed = true
             };
@@ -160,6 +165,7 @@ public static class DatabaseSeeder
                 FirstName = "Bob",
                 LastName = "Security",
                 AgentSpecialty = TicketCategory.AccessManagement,
+                IsAvailable = true,
                 ActiveTicketCount = 0,
                 EmailConfirmed = true
             };
@@ -169,6 +175,29 @@ public static class DatabaseSeeder
             {
                 await userManager.AddToRoleAsync(accessAgent, "Agent");
                 Log.Information("Seeded Access Management Agent: {Email}", accessEmail);
+            }
+        }
+    }
+    private static async Task SeedAdminAsync(UserManager<AppUser> userManager)
+    {
+        var adminEmail = "admin@zendesk.com";
+        if (await userManager.FindByEmailAsync(adminEmail) == null)
+        {
+            var adminUser = new AppUser
+            {
+                UserName = adminEmail,
+                Email = adminEmail,
+                FirstName = "System",
+                LastName = "Administrator",
+                EmailConfirmed = true,
+                IsAvailable = true
+            };
+
+            var result = await userManager.CreateAsync(adminUser, "AdminPassword123!");
+            if (result.Succeeded)
+            {
+                await userManager.AddToRoleAsync(adminUser, "Admin");
+                Log.Information("Seeded System Admin: {Email}", adminEmail);
             }
         }
     }

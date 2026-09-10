@@ -1,5 +1,6 @@
 ﻿using MediatR;
 using Microsoft.Extensions.Logging;
+using Microsoft.EntityFrameworkCore;
 using ZendeskLite.Application.Abstractions.Common.Interfaces;
 using ZendeskLite.Application.Abstractions.Persistence;
 using ZendeskLite.Application.Features.TicketService.Commands.UpdateStatusTicket;
@@ -13,7 +14,7 @@ public class UpdateTicketStatusCommandHandler : IRequestHandler<UpdateTicketStat
     private readonly ITicketAuditRepository _auditRepository;
     private readonly IAgentRepository _agentRepository;
     private readonly IApplicationDbContext _context;
-    private readonly ICurrentUser _currentUser; 
+    private readonly ICurrentUser _currentUser;
     private readonly ILogger<UpdateTicketStatusCommandHandler> _logger;
 
     public UpdateTicketStatusCommandHandler(
@@ -49,37 +50,49 @@ public class UpdateTicketStatusCommandHandler : IRequestHandler<UpdateTicketStat
             (request.NewStatus == TicketStatus.Resolved || request.NewStatus == TicketStatus.Archived) &&
             (ticket.Status != TicketStatus.Resolved && ticket.Status != TicketStatus.Archived);
 
-        using var transaction = await _context.Database.BeginTransactionAsync(ct);
+        var strategy = _context.Database.CreateExecutionStrategy();
+
         try
         {
-            ticket.Status = request.NewStatus;
-            ticket.UpdateLastModified();
-            await _ticketRepository.UpdateAsync(ticket, ct);
-
-            if (isTransitioningToClosed && !string.IsNullOrEmpty(ticket.AgentId))
+            return await strategy.ExecuteAsync(async () =>
             {
-                await _agentRepository.DecrementActiveLoadAsync(ticket.AgentId, ct);
-                _logger.LogInformation("Agent {AgentId} active load decremented because ticket {TicketId} status changed to {Status}",
-                    ticket.AgentId, ticket.Id, request.NewStatus);
-            }
+                using var transaction = await _context.Database.BeginTransactionAsync(ct);
+                try
+                {
+                    ticket.Status = request.NewStatus;
+                    ticket.UpdateLastModified();
+                    await _ticketRepository.UpdateAsync(ticket, ct);
 
-            await _auditRepository.AddAuditLogAsync(new TicketAuditLog
-            {
-                TicketId = ticket.Id,
-                Action = $"Status changed to {request.NewStatus}",
-                ChangedByUserId = _currentUser.UserId!,
-                Notes = request.Notes
-            }, ct);
+                    if (isTransitioningToClosed && !string.IsNullOrEmpty(ticket.AgentId))
+                    {
+                        await _agentRepository.DecrementActiveLoadAsync(ticket.AgentId, ct);
+                        _logger.LogInformation("Agent {AgentId} active load decremented because ticket {TicketId} status changed to {Status}",
+                            ticket.AgentId, ticket.Id, request.NewStatus);
+                    }
 
-            await _context.SaveChangesAsync(ct);
-            await transaction.CommitAsync(ct);
+                    await _auditRepository.AddAuditLogAsync(new TicketAuditLog
+                    {
+                        TicketId = ticket.Id,
+                        Action = $"Status changed to {request.NewStatus}",
+                        ChangedByUserId = _currentUser.UserId!,
+                        Notes = request.Notes
+                    }, ct);
 
-            _logger.LogInformation("Ticket {TicketId} status updated to {Status} by {UserId}", ticket.Id, request.NewStatus, _currentUser.UserId);
-            return Result.Success();
+                    await _context.SaveChangesAsync(ct);
+                    await transaction.CommitAsync(ct);
+
+                    _logger.LogInformation("Ticket {TicketId} status updated to {Status} by {UserId}", ticket.Id, request.NewStatus, _currentUser.UserId);
+                    return Result.Success();
+                }
+                catch
+                {
+                    await transaction.RollbackAsync(ct);
+                    throw;
+                }
+            });
         }
         catch (Exception ex)
         {
-            await transaction.RollbackAsync(ct);
             _logger.LogError(ex, "Transaction failed for TicketId: {TicketId}.", request.TicketId);
             return Result.Failure(Error.Failure("500", "An internal error occurred."));
         }

@@ -2,14 +2,16 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ZendeskLite.Application.Common.Extensions;
+using ZendeskLite.Application.DTOs.Request.Ticket;
 using ZendeskLite.Application.Features.TicketService.Commands.AddTicketComment;
 using ZendeskLite.Application.Features.TicketService.Commands.AssignTicket;
+using ZendeskLite.Application.Features.TicketService.Commands.SoftDeleteTicket;
 using ZendeskLite.Application.Features.TicketService.Commands.SubmitTicket;
 using ZendeskLite.Application.Features.TicketService.Commands.UpdateStatusTicket;
 using ZendeskLite.Application.Features.TicketService.Queries.GetAdminTicket;
 using ZendeskLite.Application.Features.TicketService.Queries.GetTicket;
-using ZendeskLite.Application.Features.TicketService.Queries.ListTicket;
-using ZendeskLite.Application.Features.TicketService.Queries.ListUnassignedTickets;
+using ZendeskLite.Application.Features.TicketService.Queries.ListMyTickets;
+using ZendeskLite.Application.Features.TicketService.Queries.ListTickets;
 using ZendeskLite.Domain.Common;
 using ZendeskLite.Domain.Enums;
 
@@ -21,41 +23,10 @@ namespace ZendeskLite.API.Controllers
     public class TicketController : ControllerBase
     {
         private readonly ISender _sender;
+
         public TicketController(ISender sender)
         {
             _sender = sender;
-        }
-
-        [HttpGet]
-        public async Task<IActionResult> GetTickets([FromQuery] TicketStatus? status,
-            [FromQuery] TicketPriority? priority,
-            [FromQuery] int page = 1,
-            [FromQuery] int pageSize = 10,
-            CancellationToken ct = default)
-        {
-            var query = new GetTicketsQuery(status, priority, page, pageSize);
-            var result = await _sender.Send(query, ct);
-
-            return result.Match(
-                onSuccess: tickets => Ok(tickets),
-                onFailure: HandleError
-            );
-        }
-
-        [HttpGet("unassigned")]
-        [Authorize(Roles = "Admin,Agent")]
-        public async Task<IActionResult> GetUnassignedTickets(
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 10,
-        CancellationToken ct = default)
-        {
-            var query = new GetUnassignedTicketsQuery(page, pageSize);
-            var result = await _sender.Send(query, ct);
-
-            return result.Match(
-                onSuccess: pagedResult => Ok(pagedResult),
-                onFailure: HandleError
-            );
         }
 
         [HttpGet("{id:guid}")]
@@ -71,7 +42,7 @@ namespace ZendeskLite.API.Controllers
         }
 
         [HttpGet("/api/admin/tickets/{id:guid}")]
-        [Authorize(Roles = "Admin")] 
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> GetAdminTicketById(Guid id, CancellationToken ct)
         {
             var query = new GetAdminTicketByIdQuery(id);
@@ -83,6 +54,46 @@ namespace ZendeskLite.API.Controllers
             );
         }
 
+        [HttpGet("my")]
+        [Authorize(Roles = "Customer")]
+        public async Task<IActionResult> ListMyTickets(
+            [FromQuery] TicketStatus? status,
+            [FromQuery] TicketCategory? category,
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 10,
+            CancellationToken ct = default)
+        {
+            var query = new ListMyTicketsQuery(status, category, page, pageSize);
+            var result = await _sender.Send(query, ct);
+
+            return result.Match(
+                onSuccess: pagedResult => Ok(pagedResult),
+                onFailure: HandleError
+            );
+        }
+
+        [HttpGet]
+        [Authorize(Roles = "Admin,Agent")]
+        public async Task<IActionResult> ListTickets(
+            [FromQuery] string? userId,
+            [FromQuery] string? agentId,
+            [FromQuery] TicketStatus? status,
+            [FromQuery] TicketPriority? priority,
+            [FromQuery] TicketCategory? category,
+            [FromQuery] bool isAssigned = true,
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 10,
+            CancellationToken ct = default)
+        {
+            var query = new ListTicketsQuery(userId, agentId, status, priority, category, isAssigned, page, pageSize);
+            var result = await _sender.Send(query, ct);
+
+            return result.Match(
+                onSuccess: pagedResult => Ok(pagedResult),
+                onFailure: HandleError
+            );
+        }
+
         [HttpPost]
         public async Task<IActionResult> SubmitTicket([FromBody] SubmitTicketRequestBody requestBody, CancellationToken ct)
         {
@@ -90,7 +101,7 @@ namespace ZendeskLite.API.Controllers
             var result = await _sender.Send(command, ct);
 
             return result.Match(
-                onSuccess: ticketId => Ok(new { id = ticketId }), 
+                onSuccess: ticketId => Ok(new { id = ticketId }),
                 onFailure: HandleError
             );
         }
@@ -108,7 +119,7 @@ namespace ZendeskLite.API.Controllers
         }
 
         [HttpPost("{ticketId:guid}/assign")]
-        [Authorize(Roles = "Admin")] 
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> AssignTicket(Guid ticketId, [FromBody] AssignTicketRequestBody requestBody, CancellationToken ct)
         {
             var command = new AssignTicketCommand(ticketId, requestBody.TargetAgentId);
@@ -121,10 +132,23 @@ namespace ZendeskLite.API.Controllers
         }
 
         [HttpPatch("{ticketId:guid}/status")]
-        [Authorize(Roles = "Admin,Agent")] 
+        [Authorize(Roles = "Admin,Agent")]
         public async Task<IActionResult> UpdateTicketStatus(Guid ticketId, [FromBody] UpdateTicketStatusRequestBody requestBody, CancellationToken ct)
         {
             var command = new UpdateTicketStatusCommand(ticketId, requestBody.NewStatus, requestBody.Notes);
+            var result = await _sender.Send(command, ct);
+
+            return result.Match(
+                onSuccess: () => Ok(),
+                onFailure: HandleError
+            );
+        }
+
+        [HttpDelete("{id:guid}")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> SoftDeleteTicket(Guid id, CancellationToken ct)
+        {
+            var command = new SoftDeleteTicketCommand(id);
             var result = await _sender.Send(command, ct);
 
             return result.Match(
@@ -143,9 +167,5 @@ namespace ZendeskLite.API.Controllers
                 _ => BadRequest(error)
             };
         }
-        public record SubmitTicketRequestBody(string Title, string Description);
-        public record AddCommentRequestBody(string CommentText);
-        public record AssignTicketRequestBody(string TargetAgentId);
-        public record UpdateTicketStatusRequestBody(TicketStatus NewStatus, string Notes);
     }
 }

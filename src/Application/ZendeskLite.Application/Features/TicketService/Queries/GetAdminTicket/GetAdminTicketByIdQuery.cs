@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using ZendeskLite.Application.DTOs;
+using ZendeskLite.Application.DTOs.Response;
 using ZendeskLite.Domain.Common;
 
 namespace ZendeskLite.Application.Features.TicketService.Queries.GetAdminTicket

@@ -54,7 +54,7 @@ public class AssignTicketCommandHandler : IRequestHandler<AssignTicketCommand, R
         }
 
         // validate that the target agent is actually available
-        var targetAgent = await _agentRepository.GetByIdAsync(request.TargetAgentId, ct);
+        var targetAgent = await _agentRepository.GetByIdAgentAsync(request.TargetAgentId, ct);
         if (targetAgent == null || !targetAgent.IsAvailable)
         {
             _logger.LogWarning("Assignment failed: Target agent {AgentId} is not available.", request.TargetAgentId);

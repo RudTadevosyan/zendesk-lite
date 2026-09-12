@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Serialization;
+using ZendeskLite.Application.DTOs.Request.Ticket;
 using ZendeskLite.Domain.Common;
 using ZendeskLite.Domain.Entities;
 using ZendeskLite.Domain.Enums;
@@ -17,10 +18,6 @@ namespace ZendeskLite.Application.Abstractions.Persistence
         Task SoftDeleteAsync(Guid id, CancellationToken ct);
         Task<Ticket?> GetByIdAsync(Guid id, CancellationToken ct);
         Task<Ticket?> GetByIdReadOnlyAsync(Guid id, CancellationToken ct);
-        Task<PagedResult<Ticket>> GetUnassignedTicketsAsync(int page, int pageSize, CancellationToken ct);
         Task<PagedResult<Ticket>> GetFilteredTicketsAsync(TicketQueryParameters parameters, CancellationToken ct);
     }
-
-    public record TicketQueryParameters(string? UserId, TicketStatus? Status, TicketPriority? Priority,
-        int Page = 1, int PageSize = 10);
 }

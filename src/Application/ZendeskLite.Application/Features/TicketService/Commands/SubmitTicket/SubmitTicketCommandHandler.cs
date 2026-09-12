@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using ZendeskLite.Application.Abstractions.Common.Interfaces;
 using ZendeskLite.Application.Abstractions.Persistence;
 using ZendeskLite.Application.DTOs;
+using ZendeskLite.Application.Events;
 using ZendeskLite.Application.Features.TicketService.Commands.SubmitTicket;
 using ZendeskLite.Domain.Common;
 using ZendeskLite.Domain.Entities;

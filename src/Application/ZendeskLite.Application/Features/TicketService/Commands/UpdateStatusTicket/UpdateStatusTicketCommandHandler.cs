@@ -45,10 +45,18 @@ public class UpdateTicketStatusCommandHandler : IRequestHandler<UpdateTicketStat
             return Result.Failure(Error.Validation("403", "You are not authorized to update this ticket."));
         }
 
-        // See if we closing the ticket (Resolved or Archived) and if the current status is not already closed
+        var oldStatus = ticket.Status;
+        var newStatus = request.NewStatus;
+
+        // Closing transition: moving from active/open to Resolved or Archived
         bool isTransitioningToClosed =
-            (request.NewStatus == TicketStatus.Resolved || request.NewStatus == TicketStatus.Archived) &&
-            (ticket.Status != TicketStatus.Resolved && ticket.Status != TicketStatus.Archived);
+            (newStatus == TicketStatus.Resolved || newStatus == TicketStatus.Archived) &&
+            (oldStatus != TicketStatus.Resolved && oldStatus != TicketStatus.Archived);
+
+        // Re-opening transition: moving from Resolved back to an active/open status
+        bool isTransitioningFromResolvedToActive =
+            (oldStatus == TicketStatus.Resolved) &&
+            (newStatus != TicketStatus.Resolved && newStatus != TicketStatus.Archived);
 
         var strategy = _context.Database.CreateExecutionStrategy();
 
@@ -59,21 +67,30 @@ public class UpdateTicketStatusCommandHandler : IRequestHandler<UpdateTicketStat
                 using var transaction = await _context.Database.BeginTransactionAsync(ct);
                 try
                 {
-                    ticket.Status = request.NewStatus;
+                    ticket.Status = newStatus;
                     ticket.UpdateLastModified();
                     await _ticketRepository.UpdateAsync(ticket, ct);
 
-                    if (isTransitioningToClosed && !string.IsNullOrEmpty(ticket.AgentId))
+                    if (!string.IsNullOrEmpty(ticket.AgentId))
                     {
-                        await _agentRepository.DecrementActiveLoadAsync(ticket.AgentId, ct);
-                        _logger.LogInformation("Agent {AgentId} active load decremented because ticket {TicketId} status changed to {Status}",
-                            ticket.AgentId, ticket.Id, request.NewStatus);
+                        if (isTransitioningToClosed)
+                        {
+                            await _agentRepository.DecrementActiveLoadAsync(ticket.AgentId, ct);
+                            _logger.LogInformation("Agent {AgentId} active load decremented because ticket {TicketId} closed (status: {Status})",
+                                ticket.AgentId, ticket.Id, newStatus);
+                        }
+                        else if (isTransitioningFromResolvedToActive)
+                        {
+                            await _agentRepository.IncrementActiveLoadAsync(ticket.AgentId, ct);
+                            _logger.LogInformation("Agent {AgentId} active load incremented because resolved ticket {TicketId} was re-opened (status: {Status})",
+                                ticket.AgentId, ticket.Id, newStatus);
+                        }
                     }
 
                     await _auditRepository.AddAuditLogAsync(new TicketAuditLog
                     {
                         TicketId = ticket.Id,
-                        Action = $"Status changed to {request.NewStatus}",
+                        Action = $"Status changed from {oldStatus} to {newStatus}",
                         ChangedByUserId = _currentUser.UserId!,
                         Notes = request.Notes
                     }, ct);
@@ -81,7 +98,7 @@ public class UpdateTicketStatusCommandHandler : IRequestHandler<UpdateTicketStat
                     await _context.SaveChangesAsync(ct);
                     await transaction.CommitAsync(ct);
 
-                    _logger.LogInformation("Ticket {TicketId} status updated to {Status} by {UserId}", ticket.Id, request.NewStatus, _currentUser.UserId);
+                    _logger.LogInformation("Ticket {TicketId} status updated to {Status} by {UserId}", ticket.Id, newStatus, _currentUser.UserId);
                     return Result.Success();
                 }
                 catch

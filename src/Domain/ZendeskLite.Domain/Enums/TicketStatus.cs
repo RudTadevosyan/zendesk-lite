@@ -12,6 +12,6 @@ namespace ZendeskLite.Domain.Enums
         Assigned,     // background worker processed it and assigned an agent
         UnderReview,  // agent is working on the issue
         Resolved,     // agent fixed the problem
-        Archived      // soft-deleted
+        Archived      // archived
     }
 }

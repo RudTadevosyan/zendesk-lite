@@ -1,7 +1,9 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using ZendeskLite.Application.Abstractions.Persistence;
+using ZendeskLite.Application.DTOs.Request.Ticket;
 using ZendeskLite.Domain.Common;
 using ZendeskLite.Domain.Entities;
+using ZendeskLite.Domain.Enums;
 
 namespace ZendeskLite.Infrastructure.Persistence;
 
@@ -43,26 +45,28 @@ public class TicketRepository : ITicketRepository
             .FirstOrDefaultAsync(t => t.Id == id && !t.IsDeleted, ct);
     }
 
-    public async Task<PagedResult<Ticket>> GetUnassignedTicketsAsync(int page, int pageSize, CancellationToken ct)
-    {
-        var query = _context.Tickets.Where(t => !t.IsDeleted && t.AgentId == null);
-
-        int totalCount = await query.CountAsync(ct);
-        var tickets = await query
-            .OrderByDescending(t => t.CreatedAt)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .ToListAsync(ct);
-
-        return new PagedResult<Ticket>(tickets, totalCount, page, pageSize);
-    }
-
     public async Task<PagedResult<Ticket>> GetFilteredTicketsAsync(TicketQueryParameters p, CancellationToken ct)
     {
-        IQueryable<Ticket> query = _context.Tickets.Where(t => !t.IsDeleted);
+        IQueryable<Ticket> query = _context.Tickets.AsNoTracking().Where(t => !t.IsDeleted);
 
         if (!string.IsNullOrEmpty(p.UserId))
-            query = query.Where(t => t.CustomerId == p.UserId || t.AgentId == p.UserId);
+            query = query.Where(t => t.CustomerId == p.UserId);
+
+        if (p.IsAssigned)
+        {
+            if (!string.IsNullOrEmpty(p.AgentId))
+            {
+                query = query.Where(t => t.AgentId == p.AgentId);
+            }
+            else
+            {
+                query = query.Where(t => t.AgentId != null);
+            }
+        }
+        else
+        {
+            query = query.Where(t => t.AgentId == null);
+        }
 
         if (p.Status.HasValue)
             query = query.Where(t => t.Status == p.Status);
@@ -70,15 +74,18 @@ public class TicketRepository : ITicketRepository
         if (p.Priority.HasValue)
             query = query.Where(t => t.Priority == p.Priority);
 
+        if (p.Category.HasValue)
+            query = query.Where(t => t.Category == p.Category);
+
         int totalCount = await query.CountAsync(ct);
 
         var tickets = await query
             .OrderByDescending(t => t.CreatedAt)
-            .Skip((p.Page - 1) * p.PageSize)
+            .Skip((p.PageNumber - 1) * p.PageSize)
             .Take(p.PageSize)
             .ToListAsync(ct);
 
-        return new PagedResult<Ticket>(tickets, totalCount, p.Page, p.PageSize);
+        return new PagedResult<Ticket>(tickets, totalCount, p.PageNumber, p.PageSize);
     }
     public async Task<List<TicketAuditLog>> GetLogsByTicketIdAsync(Guid ticketId, CancellationToken ct)
     {

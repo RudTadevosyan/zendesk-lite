@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using ZendeskLite.Domain.Enums;
 
-namespace ZendeskLite.Application.DTOs
+namespace ZendeskLite.Application.DTOs.Response
 {
     public record AgentWorkloadDto(
         string AgentId,

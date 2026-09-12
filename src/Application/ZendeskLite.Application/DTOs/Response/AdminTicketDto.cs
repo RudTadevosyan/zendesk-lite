@@ -1,6 +1,6 @@
 ﻿using ZendeskLite.Domain.Enums;
 
-namespace ZendeskLite.Application.DTOs
+namespace ZendeskLite.Application.DTOs.Response
 { 
     public record AdminTicketDto(
         Guid Id,

@@ -4,7 +4,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ZendeskLite.Application.DTOs
+namespace ZendeskLite.Application.DTOs.Request.Ticket
 {
-    public record TicketSubmittedEvent(Guid TicketId);
+    public record AddCommentRequestBody(string CommentText);
+
 }

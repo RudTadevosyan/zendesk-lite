@@ -96,6 +96,8 @@ public class Program
 
         app.MapDefaultEndpoints();
 
+        app.UseMiddleware<GlobalExceptionMiddleware>();
+
         if (app.Environment.IsDevelopment())
         {
             app.UseSwagger();

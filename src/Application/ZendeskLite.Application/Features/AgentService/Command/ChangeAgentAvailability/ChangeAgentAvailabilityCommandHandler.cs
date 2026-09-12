@@ -53,6 +53,13 @@ namespace ZendeskLite.Application.Features.AgentService.Command.ToggleAgentAvail
                 agentToUpdateId = _currentUser.UserId;
             }
 
+            // check if the agent exists
+            var agent = await _agentRepository.GetByIdAgentAsync(agentToUpdateId, ct);
+            if (agent == null)
+            {
+                return Result.Failure(Error.NotFound("404", "Agent not found."));
+            }
+
             await _agentRepository.SetAvailabilityAsync(agentToUpdateId, request.IsAvailable, ct);
 
             _logger.LogInformation("Agent {AgentId} availability status changed to: {IsAvailable} by user {ChangedBy}",

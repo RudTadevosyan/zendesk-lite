@@ -9,7 +9,5 @@ using ZendeskLite.Domain.Common;
 
 namespace ZendeskLite.Application.Features.Identity.Commands.Register
 {
-    public record RegisterCommand(string FirstName, string LastName, string Email, string Password, string ConfirmPassword) : IRequest<Result<TokenResponse>>
-    {
-    }
+    public record RegisterCommand(string FirstName, string LastName, string Email, string Password, string ConfirmPassword) : IRequest<Result<TokenResponse>>;
 }

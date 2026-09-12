@@ -3,7 +3,7 @@ using RabbitMQ.Client.Events;
 using System.Text;
 using System.Text.Json;
 using ZendeskLite.Application.Abstractions.Persistence;
-using ZendeskLite.Application.DTOs;
+using ZendeskLite.Application.Events;
 using ZendeskLite.Domain.Enums;
 
 namespace ZendeskLite.Worker;
@@ -92,12 +92,19 @@ public sealed class TicketConsumerWorker : BackgroundService
                     return;
                 }
 
-                // Simulate AI Text Optimization & Categorization 
+                // Simulate AI Text Optimization & Categorization -------------
+
+                var random = Random.Shared;
+
+                var categories = Enum.GetValues<TicketCategory>();
+                var priorities = Enum.GetValues<TicketPriority>();
+                var statuses = Enum.GetValues<TicketStatus>();
+
                 ticket.Title = "Optimized: " + ticket.Title;
                 ticket.CleanedDescription = $"[AI Cleaned]: {ticket.RawDescription}";
-                ticket.Category = TicketCategory.Billing;
-                ticket.Priority = TicketPriority.High;
-                ticket.Status = TicketStatus.UnderReview;
+                ticket.Category = categories[random.Next(categories.Length)];
+                ticket.Priority = priorities[random.Next(priorities.Length)];
+                ticket.Status = statuses[random.Next(statuses.Length)];
 
                 // Connect to the agent repository for assignment algorithm
                 var assignedAgent = await agentRepository.GetBestAvailableAgentAsync(ticket.Category, stoppingToken);

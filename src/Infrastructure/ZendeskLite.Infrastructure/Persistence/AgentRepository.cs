@@ -3,6 +3,7 @@ using Pipelines.Sockets.Unofficial.Arenas;
 using System.Threading;
 using System.Threading.Tasks;
 using ZendeskLite.Application.Abstractions.Persistence;
+using ZendeskLite.Domain.Common;
 using ZendeskLite.Domain.Entities;
 using ZendeskLite.Domain.Enums;
 
@@ -17,15 +18,27 @@ namespace ZendeskLite.Infrastructure.Persistence
             _context = context;
         }
 
-        public async Task<AppUser?> GetByIdAsync(string agentId, CancellationToken cancellationToken)
+        // helper query for agent filtering
+        private IQueryable<AppUser> QueryAgents()
         {
-            return await _context.Users
+            return _context.Users
+                .Where(user => _context.UserRoles
+                    .Where(ur => _context.Roles
+                        .Any(r => r.Id == ur.RoleId && r.Name == "Agent")
+                    )
+                    .Any(ur => ur.UserId == user.Id)
+                );
+        }
+
+        public async Task<AppUser?> GetByIdAgentAsync(string agentId, CancellationToken cancellationToken)
+        {
+            return await QueryAgents()
                 .FirstOrDefaultAsync(u => u.Id == agentId, cancellationToken);
         }
 
         public async Task<AppUser?> GetBestAvailableAgentAsync(TicketCategory category, CancellationToken cancellationToken)
         {
-            return await _context.Users
+            return await QueryAgents()
                 .Where(u => u.AgentSpecialty == category && u.IsAvailable)
                 .OrderBy(u => u.ActiveTicketCount)
                 .FirstOrDefaultAsync(cancellationToken);
@@ -54,10 +67,18 @@ namespace ZendeskLite.Infrastructure.Persistence
                 .ExecuteUpdateAsync(s => s.SetProperty(u => u.IsAvailable, isAvailable), cancellationToken);
         }
 
-        public async Task<IEnumerable<AppUser>> GetAllAgentsAsync(CancellationToken cancellationToken)
+        public async Task<PagedResult<AppUser>> GetAllAgentsAsync(int pageNumber, int pageSize, CancellationToken cancellationToken)
         {
-            return await _context.Users
+            var query = QueryAgents();
+
+            var totalCount = await query.CountAsync(cancellationToken);
+
+            var agents = await query
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
                 .ToListAsync(cancellationToken);
+
+            return new PagedResult<AppUser>(agents, totalCount, pageNumber, pageSize);
         }
 
     }

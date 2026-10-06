@@ -1,10 +1,8 @@
 ﻿using MediatR;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using ZendeskLite.Application.Abstractions.Common.Interfaces;
 using ZendeskLite.Domain.Common;
@@ -53,6 +51,18 @@ namespace ZendeskLite.Application.Features.Identity.Commands.Register
             {
                 var errorMessages = string.Join(", ", result.Errors.Select(e => e.Description));
                 return Result.Failure<TokenResponse>(Error.Conflict("Registration.Failed", errorMessages));
+            }
+
+            // Assign default role "Customer"
+            var roleResult = await _userManager.AddToRoleAsync(user, "Customer");
+            if (!roleResult.Succeeded)
+            {
+                // Optional: remove the created user to avoid a user with no role
+                await _userManager.DeleteAsync(user);
+
+                var roleErrors = string.Join(", ", roleResult.Errors.Select(e => e.Description));
+                _logger.LogWarning("Failed to assign role to new user {Email}: {Errors}", user.Email, roleErrors);
+                return Result.Failure<TokenResponse>(Error.Failure("Registration.RoleAssignmentFailed", roleErrors));
             }
 
             return await _tokenService.GenerateTokenAsync(user, ct);

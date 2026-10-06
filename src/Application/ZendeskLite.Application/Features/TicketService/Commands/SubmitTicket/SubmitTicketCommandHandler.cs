@@ -1,5 +1,6 @@
 ﻿using MediatR;
 using Microsoft.Extensions.Logging;
+using System.Text.Json;
 using ZendeskLite.Application.Abstractions.Common.Interfaces;
 using ZendeskLite.Application.Abstractions.Persistence;
 using ZendeskLite.Application.DTOs;
@@ -12,18 +13,18 @@ public class SubmitTicketCommandHandler : IRequestHandler<SubmitTicketCommand, R
 {
     private readonly ITicketRepository _ticketRepository;
     private readonly ICurrentUser _currentUser;
-    private readonly IMessagePublisher _messagePublisher;
+    private readonly IApplicationDbContext _dbContext;
     private readonly ILogger<SubmitTicketCommandHandler> _logger;
 
     public SubmitTicketCommandHandler(
         ITicketRepository ticketRepository,
         ILogger<SubmitTicketCommandHandler> logger,
         ICurrentUser currentUser,
-        IMessagePublisher messagePublisher)
+         IApplicationDbContext dbContext)
     {
         _ticketRepository = ticketRepository;
         _currentUser = currentUser;
-        _messagePublisher = messagePublisher;
+        _dbContext = dbContext;
         _logger = logger;
     }
 
@@ -43,12 +44,25 @@ public class SubmitTicketCommandHandler : IRequestHandler<SubmitTicketCommand, R
             CustomerId = _currentUser.UserId!,
         };
 
-        await _ticketRepository.AddAsync(ticket, ct);
+        var @event = new TicketSubmittedEvent(ticket.Id);
 
-        await _messagePublisher.PublishAsync(
-            new TicketSubmittedEvent(ticket.Id),
-            routingKey: "ticket.submitted",
-            ct);
+        var outboxMessage = new OutboxMessage
+        {
+            Id = Guid.NewGuid(),
+            Type = typeof(TicketSubmittedEvent).Name!,
+            RoutingKey = "ticket.submitted",
+            Payload = JsonSerializer.Serialize(@event),
+            CreatedAt = DateTime.UtcNow,
+            Processed = false,
+            Attempts = 0
+        };
+
+
+        await _ticketRepository.AddAsync(ticket, ct);
+        await _dbContext.OutboxMessages.AddAsync(outboxMessage, ct);
+
+        // save after adding both ticket and outbox message to ensure atomicity
+        await _dbContext.SaveChangesAsync(ct);
 
         _logger.LogInformation("Ticket {TicketId} saved and queued for background processing.", ticket.Id);
 

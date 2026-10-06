@@ -8,5 +8,5 @@ using ZendeskLite.Domain.Enums;
 namespace ZendeskLite.Application.DTOs.Request.Ticket
 {
     public record TicketQueryParameters(string? UserId, string? AgentId, TicketStatus? Status, TicketPriority? Priority,
-        TicketCategory? Category, bool IsAssigned = true, int PageNumber = 1, int PageSize = 10);
+        TicketCategory? Category, bool? IsAssigned = true, int PageNumber = 1, int PageSize = 10);
 }

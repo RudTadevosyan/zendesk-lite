@@ -8,6 +8,8 @@ public interface IApplicationDbContext
 {
     DbSet<Ticket> Tickets { get; }
     DbSet<TicketAuditLog> TicketAuditLogs { get; }
+    DbSet<OutboxMessage> OutboxMessages { get; }
+    DbSet<ProcessedMessage> ProcessedMessages { get; }
     DatabaseFacade Database { get; } 
     Task<int> SaveChangesAsync(CancellationToken ct);
 }

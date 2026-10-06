@@ -63,10 +63,38 @@ namespace ZendeskLite.Infrastructure.Messaging
             _logger.LogInformation("Published message of type {Type} with routing key {RoutingKey}", typeof(T).Name, routingKey);
         }
 
+        // without serializatiion
+        public async Task PublishRawAsync(
+            Guid messageId,
+            string payload,
+            string routingKey,
+            CancellationToken ct = default)
+        {
+            await EnsureConnectedAsync(ct);
+
+            var body = Encoding.UTF8.GetBytes(payload);
+
+            var properties = new BasicProperties // header
+            {
+                Persistent = true,
+                MessageId = messageId.ToString() // idempotent message ID for tracking
+            };
+
+            await _channel!.BasicPublishAsync(
+                exchange: MainExchange,
+                routingKey: routingKey,
+                mandatory: false,
+                basicProperties: properties,
+                body: body,
+                cancellationToken: ct);
+
+            _logger.LogInformation("Published OutboxMessage {MessageId} with routing key {RoutingKey}",messageId,routingKey);
+        }
         public async ValueTask DisposeAsync()
         {
             if (_channel != null) await _channel.CloseAsync();
             if (_connection != null) await _connection.CloseAsync();
         }
+
     }
 }

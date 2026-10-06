@@ -1,7 +1,4 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Pipelines.Sockets.Unofficial.Arenas;
-using System.Threading;
-using System.Threading.Tasks;
 using ZendeskLite.Application.Abstractions.Persistence;
 using ZendeskLite.Domain.Common;
 using ZendeskLite.Domain.Entities;
@@ -41,18 +38,23 @@ namespace ZendeskLite.Infrastructure.Persistence
             return await QueryAgents()
                 .Where(u => u.AgentSpecialty == category && u.IsAvailable)
                 .OrderBy(u => u.ActiveTicketCount)
+                .ThenBy(u => u.Id)
                 .FirstOrDefaultAsync(cancellationToken);
         }
+
         public async Task IncrementActiveLoadAsync(string agentId, CancellationToken cancellationToken)
         {
-            // Performs an atomic database-level increment
-            // completely thread-safe against race conditions across multiple workers.
-            await _context.Users
-                .Where(a => a.Id == agentId)
+            // Performs an atomic database-level increment.
+            var affectedRows = await _context.Users
+                .Where(a => a.Id == agentId && a.IsAvailable)
                 .ExecuteUpdateAsync(s => s.SetProperty(u => u.ActiveTicketCount, u => u.ActiveTicketCount + 1), cancellationToken);
-            // with this we don't need to call _context.SaveChangesAsync()
-            // because ExecuteUpdateAsync handles it internally
+
+            if (affectedRows == 0)
+            {
+                throw new InvalidOperationException($"Agent {agentId} was not found or is no longer available.");
+            }
         }
+
         public async Task DecrementActiveLoadAsync(string agentId, CancellationToken cancellationToken)
         {
             await _context.Users
@@ -80,6 +82,5 @@ namespace ZendeskLite.Infrastructure.Persistence
 
             return new PagedResult<AppUser>(agents, totalCount, pageNumber, pageSize);
         }
-
     }
 }

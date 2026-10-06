@@ -15,6 +15,7 @@ namespace ZendeskLite.Application.Abstractions.Persistence
     {
         Task AddAsync(Ticket ticket, CancellationToken ct);
         Task UpdateAsync(Ticket ticket, CancellationToken ct);
+        void UpdateNoSaveAsync(Ticket ticket, CancellationToken ct);
         Task SoftDeleteAsync(Guid id, CancellationToken ct);
         Task<Ticket?> GetByIdAsync(Guid id, CancellationToken ct);
         Task<Ticket?> GetByIdReadOnlyAsync(Guid id, CancellationToken ct);

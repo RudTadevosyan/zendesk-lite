@@ -12,6 +12,7 @@ builder.Services.AddInfrastructure(builder.Configuration);
 
 // register rmq - ticket consumer as a hosted background service
 builder.Services.AddHostedService<TicketConsumerWorker>();
+builder.Services.AddHostedService<OutboxPublisherWorker>();
 
 var host = builder.Build();
 

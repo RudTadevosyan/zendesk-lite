@@ -15,13 +15,18 @@ public class TicketRepository : ITicketRepository
     public async Task AddAsync(Ticket ticket, CancellationToken ct)
     {
         await _context.Tickets.AddAsync(ticket, ct);
-        await _context.SaveChangesAsync(ct);
+        // await _context.SaveChangesAsync(ct);
     }
 
     public async Task UpdateAsync(Ticket ticket, CancellationToken ct)
     {
         _context.Tickets.Update(ticket);
         await _context.SaveChangesAsync(ct);
+    }
+
+    public void UpdateNoSaveAsync(Ticket ticket, CancellationToken ct)
+    {
+        _context.Tickets.Update(ticket);
     }
 
     public async Task SoftDeleteAsync(Guid id, CancellationToken ct)
@@ -52,20 +57,23 @@ public class TicketRepository : ITicketRepository
         if (!string.IsNullOrEmpty(p.UserId))
             query = query.Where(t => t.CustomerId == p.UserId);
 
-        if (p.IsAssigned)
+        if (p.IsAssigned.HasValue)
         {
-            if (!string.IsNullOrEmpty(p.AgentId))
+            if (p.IsAssigned.Value)
             {
-                query = query.Where(t => t.AgentId == p.AgentId);
+                if (!string.IsNullOrEmpty(p.AgentId))
+                {
+                    query = query.Where(t => t.AgentId == p.AgentId);
+                }
+                else
+                {
+                    query = query.Where(t => t.AgentId != null);
+                }
             }
             else
             {
-                query = query.Where(t => t.AgentId != null);
+                query = query.Where(t => t.AgentId == null);
             }
-        }
-        else
-        {
-            query = query.Where(t => t.AgentId == null);
         }
 
         if (p.Status.HasValue)

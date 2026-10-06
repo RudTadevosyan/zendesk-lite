@@ -52,6 +52,7 @@ namespace ZendeskLite.Application.Features.TicketService.Queries.ListMyTickets
                             Status: request.Status,
                             Priority: null,
                             Category: request.Category,
+                            IsAssigned: null, // show unassigned and assigned tickets for the user
                             PageNumber: pageNumber,
                             PageSize: pageSize
                         );

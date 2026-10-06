@@ -15,12 +15,15 @@ public class ApplicationDbContext : IdentityDbContext<AppUser>, IApplicationDbCo
 
     public DbSet<Ticket> Tickets => Set<Ticket>();
     public DbSet<TicketAuditLog> TicketAuditLogs => Set<TicketAuditLog>();
+    public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
+    public DbSet<ProcessedMessage> ProcessedMessages => Set<ProcessedMessage>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
 
         builder.Entity<AppUser>().ToTable("users").HasIndex(u => new {u.AgentSpecialty, u.ActiveTicketCount});
+
         builder.Entity<IdentityRole>().ToTable("roles");
         builder.Entity<IdentityUserRole<string>>().ToTable("user_roles");
         builder.Entity<IdentityUserClaim<string>>().ToTable("user_claims");
@@ -28,6 +31,11 @@ public class ApplicationDbContext : IdentityDbContext<AppUser>, IApplicationDbCo
         builder.Entity<IdentityRoleClaim<string>>().ToTable("role_claims");
         builder.Entity<IdentityUserToken<string>>().ToTable("user_tokens");
 
+        builder.Entity<ProcessedMessage>()
+            .HasKey(x => x.MessageId);
+
+        builder.Entity<OutboxMessage>()
+            .HasKey(x => x.Id);
 
         // Automatically apply all IEntityTypeConfiguration classes found in this assembly
         builder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);

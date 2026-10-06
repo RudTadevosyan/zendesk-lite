@@ -1,10 +1,13 @@
-﻿using RabbitMQ.Client;
+﻿using Microsoft.EntityFrameworkCore;
+using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System.Text;
 using System.Text.Json;
 using ZendeskLite.Application.Abstractions.Persistence;
 using ZendeskLite.Application.Events;
+using ZendeskLite.Domain.Entities;
 using ZendeskLite.Domain.Enums;
+using ZendeskLite.Infrastructure.Persistence;
 
 namespace ZendeskLite.Worker;
 
@@ -64,6 +67,18 @@ public sealed class TicketConsumerWorker : BackgroundService
         {
             try
             {
+
+                var messageIdString = ea.BasicProperties.MessageId; //idempotency key
+
+                if (!Guid.TryParse(messageIdString, out var messageId))
+                {
+                    _logger.LogWarning("Message does not contain a valid MessageId. Rejecting to DLQ.");
+
+                    await _channel.BasicRejectAsync(ea.DeliveryTag, requeue: false);
+
+                    return;
+                }
+
                 var body = ea.Body.ToArray();
                 var json = Encoding.UTF8.GetString(body);
                 var message = JsonSerializer.Deserialize<TicketSubmittedEvent>(json);
@@ -82,52 +97,114 @@ public sealed class TicketConsumerWorker : BackgroundService
                 using var scope = _serviceProvider.CreateScope();
                 var ticketRepository = scope.ServiceProvider.GetRequiredService<ITicketRepository>();
                 var agentRepository = scope.ServiceProvider.GetRequiredService<IAgentRepository>();
+                var dbContext =scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
-                // Fetch the raw ticket from database
-                var ticket = await ticketRepository.GetByIdAsync(message.TicketId, stoppingToken);
+                // idempotency check: if the message has already been processed, acknowledge and skip processing
+                var alreadyProcessed = await dbContext.ProcessedMessages.AnyAsync(x => x.MessageId == messageId, stoppingToken);
+
+                if (alreadyProcessed)
+                {
+                    _logger.LogInformation("Message {MessageId} was already processed. Acknowledging duplicate.", messageId);
+
+                    await _channel.BasicAckAsync(ea.DeliveryTag, multiple: false);
+
+                    return;
+                }
+
+
+                // fetch ticket from db
+                var ticket =await ticketRepository.GetByIdAsync(message.TicketId, stoppingToken);
+
                 if (ticket == null)
                 {
-                    _logger.LogWarning("Ticket {TicketId} not found in database. Acknowledging to clear queue.", message.TicketId);
+                    _logger.LogWarning("Ticket {TicketId} not found. Acknowledging message.", message.TicketId);
                     await _channel.BasicAckAsync(ea.DeliveryTag, multiple: false);
                     return;
                 }
 
-                // Simulate AI Text Optimization & Categorization -------------
+                var strategy = dbContext.Database.CreateExecutionStrategy();
 
-                var random = Random.Shared;
-
-                var categories = Enum.GetValues<TicketCategory>();
-                var priorities = Enum.GetValues<TicketPriority>();
-                var statuses = Enum.GetValues<TicketStatus>();
-
-                ticket.Title = "Optimized: " + ticket.Title;
-                ticket.CleanedDescription = $"[AI Cleaned]: {ticket.RawDescription}";
-                ticket.Category = categories[random.Next(categories.Length)];
-                ticket.Priority = priorities[random.Next(priorities.Length)];
-                ticket.Status = statuses[random.Next(statuses.Length)];
-
-                // Connect to the agent repository for assignment algorithm
-                var assignedAgent = await agentRepository.GetBestAvailableAgentAsync(ticket.Category, stoppingToken);
-                if (assignedAgent != null)
+                await strategy.ExecuteAsync(async () =>
                 {
-                    ticket.AgentId = assignedAgent.Id;
+                    await using var transaction =
+                        await dbContext.Database.BeginTransactionAsync(stoppingToken);
 
-                    // Atomically increment in database using just the ID
-                    await agentRepository.IncrementActiveLoadAsync(assignedAgent.Id, stoppingToken);
+                    // Simulate AI optimization
+                    var random = Random.Shared;
 
-                    _logger.LogInformation("Assigned Ticket {TicketId} to Agent {AgentEmail}",
-                        ticket.Id, assignedAgent.Email);
-                }
-                else
-                {
-                    _logger.LogWarning("No available agent found for category {Category}. Ticket left unassigned.", ticket.Category);
-                }
+                    var categories =
+                        Enum.GetValues<TicketCategory>();
 
-                await ticketRepository.UpdateAsync(ticket, stoppingToken);
+                    var priorities =
+                        Enum.GetValues<TicketPriority>();
 
-                // Acknowledge successful processing
-                await _channel.BasicAckAsync(ea.DeliveryTag, multiple: false);
-                _logger.LogInformation("Successfully processed and routed Ticket ID: {TicketId}", message.TicketId);
+                    var statuses =
+                        Enum.GetValues<TicketStatus>();
+
+                    ticket.Title =
+                        "Optimized: " + ticket.Title;
+
+                    ticket.CleanedDescription =
+                        $"[AI Cleaned]: {ticket.RawDescription}";
+
+                    ticket.Category =
+                        categories[random.Next(categories.Length)];
+
+                    ticket.Priority =
+                        priorities[random.Next(priorities.Length)];
+
+                    ticket.Status =
+                        statuses[random.Next(statuses.Length)];
+
+                    // Assign agent
+                    var assignedAgent =
+                        await agentRepository.GetBestAvailableAgentAsync(
+                            ticket.Category,
+                            stoppingToken);
+
+                    if (assignedAgent != null)
+                    {
+                        ticket.AgentId = assignedAgent.Id;
+
+                        await agentRepository.IncrementActiveLoadAsync(
+                            assignedAgent.Id,
+                            stoppingToken);
+
+                        _logger.LogInformation(
+                            "Assigned Ticket {TicketId} to Agent {AgentEmail}",
+                            ticket.Id,
+                            assignedAgent.Email);
+                    }
+                    else
+                    {
+                        _logger.LogWarning(
+                            "No available agent found for category {Category}. Ticket left unassigned.",
+                            ticket.Category);
+                    }
+
+                    // Update ticket without saving yet
+                    ticketRepository.UpdateNoSaveAsync(ticket, stoppingToken);
+
+                    // Record successful processing
+                    var processedMessage = new ProcessedMessage
+                    {
+                        MessageId = messageId,
+                        ProcessedAt = DateTime.UtcNow
+                    };
+
+                    await dbContext.ProcessedMessages.AddAsync(
+                        processedMessage,
+                        stoppingToken);
+
+                    await dbContext.SaveChangesAsync(stoppingToken);
+
+                    await transaction.CommitAsync(stoppingToken);
+                });
+
+                // ACK only after DB commit
+                await _channel.BasicAckAsync(ea.DeliveryTag,multiple: false);
+
+                _logger.LogInformation("Successfully processed Message {MessageId} and Ticket {TicketId}",messageId,message.TicketId);
             }
             catch (Exception ex)
             {
